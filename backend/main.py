@@ -467,21 +467,28 @@ def seed_data():
     db.close()
 
 
-@app.post("/api/admin/reseed")
-def admin_reseed(secret: str = Query(...)):
-    """Wipe seed data and re-insert. Requires ADMIN_SECRET env var."""
+@app.post("/api/admin/cleanup-spam")
+def admin_cleanup_spam(secret: str = Query(...)):
+    """Remove all reports with inappropriate content from the database. Requires ADMIN_SECRET."""
     expected = os.getenv("ADMIN_SECRET", "")
     if not expected or secret != expected:
         raise HTTPException(status_code=403, detail="Forbidden")
+    
     db = SessionLocal()
-    db.query(Report).delete()
+    reports = db.query(Report).all()
+    removed_count = 0
+    
+    for report in reports:
+        if not is_appropriate_content(report.notes) or not is_appropriate_content(report.bounty_message):
+            # Also remove associated votes
+            db.query(VoteTracking).filter(VoteTracking.report_id == report.id).delete()
+            db.delete(report)
+            removed_count += 1
+    
     db.commit()
     db.close()
-    seed_data()
-    db2 = SessionLocal()
-    count = db2.query(Report).count()
-    db2.close()
-    return {"reseeded": count}
+    
+    return {"removed_reports": removed_count, "message": f"Cleaned up {removed_count} inappropriate reports"}
 
 
 @app.get("/api/reports")
