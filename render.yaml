@@ -21,14 +21,9 @@ services:
         fromDatabase:
           name: pirate-blotter
           property: connectionString
-      - key: JWT_SECRET_KEY
-        sync: false
-      - key: AUTH_SECRET
-        sync: false
       - key: ADMIN_SECRET
         sync: false
       - key: ALLOWED_ORIGINS
-        value: "*"
         value: "*"
 
   # ── Frontend static site ───────────────────────────────────────

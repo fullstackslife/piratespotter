@@ -93,10 +93,6 @@ class VoteTracking(Base):
     vote_type = Column(String, nullable=False)  # 'up' or 'down'
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    __mapper_args__ = {
-        "concrete": True,
-    }
-
 
 class GuildConfig(Base):
     __tablename__ = "guild_configs"

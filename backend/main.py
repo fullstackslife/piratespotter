@@ -63,14 +63,6 @@ def startup():
         print(f"❌ Database initialization failed: {e}")
         raise
     
-    try:
-        print("🌱 Loading seed data...")
-        seed_data()
-        print("✅ Seed data loaded successfully")
-    except Exception as e:
-        print(f"⚠️  Seed data loading failed (continuing): {e}")
-        # Don't raise - allow app to start even if seed data fails
-    
     print("🎉 Backend startup complete!")
 
 
@@ -587,7 +579,7 @@ def create_report(body: ReportCreate, request: Request):
 
 @app.post("/api/reports/{report_id}/bounty", status_code=200)
 @limiter.limit("10/minute")
-def bounty_action(report_id: str, body: BountyActionBody, request: Request, user_identifier: str = Depends(get_user_identifier)):
+def bounty_action(report_id: str, body: BountyActionBody, request: Request):
     """Honor-system bounty: claim = hunter commits; clear = threat handled (payout in-game)."""
     db = SessionLocal()
     report = db.query(Report).filter(Report.id == report_id).first()
