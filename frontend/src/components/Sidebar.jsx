@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { apiUrl } from '../api'
+import { REPORT_SYSTEM_OPTIONS } from '../scSystems'
+
+const KNOWN_SYSTEMS = new Set(REPORT_SYSTEM_OPTIONS)
 
 const THREAT_DOT = {
   high:   'bg-red-500',
@@ -90,7 +93,12 @@ export default function Sidebar() {
               return (
                 <div key={name} className="flex items-center gap-2.5 py-1.5">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${THREAT_DOT[topThreat]}`} />
-                  <span className="text-xs text-[#c9d1d9] flex-1">{name}</span>
+                  <span className="text-xs text-[#c9d1d9] flex-1">
+                    {name}
+                    {!KNOWN_SYSTEMS.has(name) && (
+                      <span className="text-[9px] text-amber-700/90 ml-1 font-normal">(legacy)</span>
+                    )}
+                  </span>
                   <div className="flex gap-1">
                     {data.high > 0 && (
                       <span className="text-[10px] bg-red-950 text-red-400 px-1.5 py-0.5 rounded font-mono">{data.high}</span>

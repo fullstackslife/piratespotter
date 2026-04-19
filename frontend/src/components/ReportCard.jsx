@@ -15,17 +15,35 @@ const PIRATE_ICONS = {
   other:    { icon: '❓', label: 'Unknown' },
 }
 
-function timeAgo(iso) {
-  const diff = Math.floor((Date.now() - new Date(iso)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
+const OUTDATED_AFTER_MS = 60 * 60 * 1000
+
+/** Human-readable age + stale flag for intel older than 1h. */
+function formatReportAge(iso) {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return { primary: '—', detail: '', outdated: false }
+  const diffMs = Date.now() - t
+  const sec = Math.floor(diffMs / 1000)
+  const outdated = diffMs >= OUTDATED_AFTER_MS
+  if (sec < 10) return { primary: 'just now', detail: '', outdated }
+  if (sec < 60) return { primary: `${sec}s ago`, detail: '', outdated }
+  if (sec < 3600) {
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return { primary: `${m}m ago`, detail: s > 0 ? `${s}s` : '', outdated }
+  }
+  if (sec < 86400) {
+    const h = Math.floor(sec / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    return { primary: `${h}h ago`, detail: m > 0 ? `${m}m` : '', outdated }
+  }
+  const d = Math.floor(sec / 86400)
+  return { primary: `${d}d ago`, detail: '', outdated: true }
 }
 
 export default function ReportCard({ report, onVote }) {
   const threat = THREAT[report.threat_level] || THREAT.medium
   const type = PIRATE_ICONS[report.pirate_type] || PIRATE_ICONS.other
+  const age = formatReportAge(report.created_at)
 
   async function vote(v) {
     await fetch(apiUrl(`/api/reports/${report.id}/vote`), {
@@ -54,7 +72,17 @@ export default function ReportCard({ report, onVote }) {
               {report.system}
             </span>
           </div>
-          <span className="text-xs text-[#484f58] shrink-0 pt-0.5">{timeAgo(report.created_at)}</span>
+          <div className="shrink-0 pt-0.5 text-right flex flex-col items-end gap-0.5">
+            <span className="text-xs text-[#8b949e] tabular-nums">
+              {age.primary}
+              {age.detail ? <span className="text-[#484f58]"> · {age.detail}</span> : null}
+            </span>
+            {age.outdated && (
+              <span className="text-[9px] font-bold uppercase tracking-wide text-amber-600/90 border border-amber-900/60 bg-amber-950/40 px-1.5 py-0.5 rounded">
+                outdated
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Middle row */}

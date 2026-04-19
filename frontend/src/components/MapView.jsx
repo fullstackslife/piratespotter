@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch'
 import { apiUrl } from '../api'
+import { MAP_SYSTEMS, MAP_JUMPS } from '../scSystems'
 
-// ── Map canvas dimensions ──────────────────────────────────────────────────────
-const W = 2000
-const H = 1200
+// ── Map canvas dimensions (schematic; topology matches known jump links) ───────
+const W = 1160
+const H = 760
 
 // ── Faction styling ────────────────────────────────────────────────────────────
 const F = {
@@ -15,76 +16,7 @@ const F = {
   vanduul: { core: '#991b1b', glow: '#ef4444', label: '#fca5a5', name: 'Vanduul' },
 }
 
-// -- Systems -- positions matching RSI ARK Starmap layout
-const SYSTEMS = {
-  Sol:      { x: 120,  y: 540, f: 'uee',     play: false, r: 14, desc: 'Origin of humanity' },
-  Kilian:   { x: 230,  y: 510, f: 'uee',     play: false, r: 11, desc: 'UEE military HQ' },
-  Nul:      { x: 230,  y: 620, f: 'uee',     play: false, r: 9,  desc: 'Near-Sol system' },
-  Croshaw:  { x: 340,  y: 555, f: 'uee',     play: false, r: 11, desc: 'First jump from Sol' },
-  Davien:   { x: 380,  y: 470, f: 'uee',     play: false, r: 10, desc: 'Site of first Human-Banu contact' },
-  Ferron:   { x: 370,  y: 420, f: 'uee',     play: false, r: 10, desc: 'Industrial UEE system' },
-  Rhetor:   { x: 350,  y: 360, f: 'uee',     play: false, r: 11, desc: 'Academic hub' },
-  Cathcart: { x: 490,  y: 490, f: 'lawless', play: false, r: 10, desc: 'Ship graveyard - Spider station' },
-  Centauri: { x: 330,  y: 680, f: 'uee',     play: false, r: 12, desc: 'First UEE colony outside Sol' },
-  Elysium:  { x: 300,  y: 780, f: 'uee',     play: false, r: 11, desc: 'Former Tevarin homeworld' },
-  Terra:    { x: 530,  y: 420, f: 'uee',     play: false, r: 15, desc: 'Most populated UEE world' },
-  Castra:   { x: 540,  y: 590, f: 'uee',     play: false, r: 12, desc: 'UEE military installation' },
-  Kiel:     { x: 640,  y: 500, f: 'uee',     play: false, r: 12, desc: 'Major UEE trade hub' },
-  Magnus:   { x: 690,  y: 430, f: 'uee',     play: true,  r: 13, desc: 'Mining & industry' },
-  Vega:     { x: 660,  y: 640, f: 'uee',     play: false, r: 11, desc: 'Former agricultural colony' },
-  Idris:    { x: 450,  y: 340, f: 'uee',     play: false, r: 10, desc: 'UEE shipbuilding system' },
-  Stanton:  { x: 810,  y: 530, f: 'uee',     play: true,  r: 20, desc: 'Primary UEE commercial system' },
-  Ellis:    { x: 800,  y: 400, f: 'uee',     play: false, r: 11, desc: 'Murray Cup racing - piracy rife' },
-  Odin:     { x: 730,  y: 340, f: 'uee',     play: false, r: 9,  desc: 'Attacked by Vanduul' },
-  Cano:     { x: 700,  y: 740, f: 'banu',    play: false, r: 11, desc: 'Banu trading system' },
-  Geddon:   { x: 820,  y: 790, f: 'banu',    play: false, r: 12, desc: 'Banu core world' },
-  Oya:      { x: 960,  y: 390, f: 'xian',    play: false, r: 12, desc: "Xi'An border system" },
-  Horus:    { x: 1070, y: 340, f: 'xian',    play: false, r: 12, desc: "Xi'An industrial core" },
-  Poli:     { x: 1150, y: 300, f: 'xian',    play: false, r: 11, desc: "Xi'An system" },
-  Kins:     { x: 1080, y: 230, f: 'xian',    play: false, r: 10, desc: "Xi'An system - 5 planets" },
-  Hyoton:   { x: 1200, y: 240, f: 'xian',    play: false, r: 10, desc: "Xi'An - Aopoa shipyard" },
-  Pyro:     { x: 1010, y: 540, f: 'lawless', play: true,  r: 17, desc: 'Lawless - dying star - 6 planets' },
-  Nyx:      { x: 980,  y: 690, f: 'lawless', play: true,  r: 13, desc: 'Outlaw sanctuary - Levski' },
-  Banshee:  { x: 1190, y: 490, f: 'lawless', play: true,  r: 12, desc: 'Unclaimed pirate haven' },
-  Caliban:  { x: 1100, y: 670, f: 'lawless', play: false, r: 10, desc: 'Abandoned after Vanduul attack' },
-  Hadrian:  { x: 1180, y: 600, f: 'lawless', play: false, r: 9,  desc: 'Near Vanduul space' },
-  Leir:     { x: 980,  y: 840, f: 'lawless', play: false, r: 9,  desc: 'Unclaimed - criminal activity' },
-  Orion:    { x: 1370, y: 520, f: 'vanduul', play: false, r: 14, desc: 'Former UEE - taken by Vanduul 2712' },
-  Tiber:    { x: 1340, y: 640, f: 'vanduul', play: false, r: 12, desc: 'Active Vanduul war fleet' },
-  Virgil:   { x: 1230, y: 730, f: 'vanduul', play: false, r: 10, desc: 'Vanduul frontier' },
-}
-
-// -- Jump connections (based on ARK Starmap confirmed routes)
-const JUMPS = [
-  ['Sol','Kilian'], ['Sol','Croshaw'], ['Sol','Nul'],
-  ['Kilian','Croshaw'], ['Kilian','Davien'], ['Kilian','Ellis'], ['Kilian','Cathcart'],
-  ['Croshaw','Nul'], ['Croshaw','Rhetor'], ['Croshaw','Ferron'],
-  ['Davien','Ferron'], ['Davien','Cathcart'], ['Davien','Cano'],
-  ['Rhetor','Ferron'], ['Rhetor','Idris'],
-  ['Ferron','Idris'],
-  ['Nul','Centauri'], ['Nul','Caliban'],
-  ['Centauri','Elysium'],
-  ['Terra','Magnus'], ['Terra','Kiel'], ['Terra','Castra'],
-  ['Kiel','Stanton'], ['Kiel','Castra'],
-  ['Magnus','Stanton'], ['Magnus','Ellis'], ['Magnus','Odin'],
-  ['Castra','Vega'], ['Castra','Nyx'], ['Castra','Oya'],
-  ['Vega','Cano'], ['Vega','Nyx'],
-  ['Stanton','Pyro'],
-  ['Ellis','Oya'],
-  ['Oya','Horus'], ['Oya','Castra'],
-  ['Horus','Poli'], ['Horus','Kins'],
-  ['Poli','Hyoton'], ['Poli','Banshee'],
-  ['Kins','Hyoton'],
-  ['Pyro','Nyx'], ['Pyro','Banshee'], ['Pyro','Cano'],
-  ['Nyx','Leir'], ['Nyx','Caliban'],
-  ['Banshee','Orion'], ['Banshee','Hadrian'],
-  ['Caliban','Nul'], ['Caliban','Virgil'],
-  ['Hadrian','Tiber'],
-  ['Leir','Elysium'],
-  ['Cano','Geddon'],
-  ['Orion','Tiber'],
-  ['Tiber','Virgil'],
-]
+const FACTION_KEYS_IN_MAP = [...new Set(Object.values(MAP_SYSTEMS).map(s => s.f))]
 
 // ── Stanton inner system ───────────────────────────────────────────────────────
 const STANTON_PLANETS = [
@@ -131,8 +63,8 @@ function ZoomControls({ onReset }) {
       display: 'flex', flexDirection: 'column', gap: 4,
     }}>
       {[
-        { label: '+', fn: () => zoomIn() },
-        { label: '−', fn: () => zoomOut() },
+        { label: '+', fn: () => zoomIn(0.12, 180) },
+        { label: '−', fn: () => zoomOut(0.12, 180) },
         { label: '⌖', fn: () => { resetTransform(); onReset?.() } },
       ].map(({ label, fn }) => (
         <button key={label} onClick={fn} style={{
@@ -236,15 +168,23 @@ export default function MapView() {
     else if (r.threat_level === 'medium' && heat[r.system].top !== 'high') heat[r.system].top = 'medium'
   }
 
-  const selSys  = selected ? SYSTEMS[selected]  : null
+  const selSys  = selected ? MAP_SYSTEMS[selected]  : null
   const selHeat = selected ? heat[selected] : null
   const selFaction = selSys ? F[selSys.f] : null
 
   return (
-    <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 76px)', minHeight: 500 }}>
+    <>
+      <style>{`
+        @media (max-width: 900px) {
+          .map-shell { flex-direction: column !important; height: auto !important; min-height: 0 !important; }
+          .map-shell .map-canvas { min-height: 52vh !important; }
+          .map-shell .map-detail { width: 100% !important; flex-shrink: 0; max-height: 46vh; }
+        }
+      `}</style>
+      <div className="map-shell" style={{ display: 'flex', gap: 16, height: 'calc(100vh - 76px)', minHeight: 500 }}>
 
       {/* ── Interactive star map ── */}
-      <div style={{
+      <div className="map-canvas" style={{
         flex: 1, position: 'relative', borderRadius: 12,
         border: '1px solid #1e2730', overflow: 'hidden', minWidth: 0,
         background: '#020407',
@@ -256,12 +196,16 @@ export default function MapView() {
           border: '1px solid #1e2730', borderRadius: 8,
           padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5,
         }}>
-          {Object.entries(F).map(([key, f]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.glow, flexShrink: 0 }} />
-              <span style={{ color: f.label }}>{f.name}</span>
-            </div>
-          ))}
+          {FACTION_KEYS_IN_MAP.map(key => {
+            const f = F[key]
+            if (!f) return null
+            return (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.glow, flexShrink: 0 }} />
+                <span style={{ color: f.label }}>{f.name}</span>
+              </div>
+            )
+          })}
           <div style={{ borderTop: '1px solid #1e2730', marginTop: 2, paddingTop: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
@@ -275,19 +219,27 @@ export default function MapView() {
           position: 'absolute', bottom: 12, left: 12, zIndex: 10,
           fontSize: 10, color: '#484f58',
         }}>
-          Scroll to zoom · drag to pan · click system for details
+          Scroll to zoom (fine steps) · drag to pan · click system for details
+        </div>
+        <div style={{
+          position: 'absolute', top: 12, right: 12, zIndex: 10,
+          fontSize: 10, color: '#484f58', maxWidth: 220, textAlign: 'right', lineHeight: 1.35,
+        }}>
+          Schematic layout — jump topology only (not CIG coordinates).
         </div>
 
         <TransformWrapper
           ref={wrapperRef}
-          initialScale={0.48}
-          initialPositionX={-180}
-          initialPositionY={-140}
-          minScale={0.25}
-          maxScale={4}
+          initialScale={0.72}
+          initialPositionX={-20}
+          initialPositionY={-10}
+          minScale={0.35}
+          maxScale={2.75}
           limitToBounds={false}
+          smooth
           panning={{ velocityDisabled: false }}
-          wheel={{ step: 0.08 }}
+          wheel={{ step: 0.018 }}
+          doubleClick={{ disabled: true }}
         >
           {() => (
             <>
@@ -326,15 +278,12 @@ export default function MapView() {
                   ))}
 
                   {/* Nebula clouds */}
-                  <ellipse cx="1050" cy="570" rx="280" ry="160" fill="rgba(180,50,10,0.035)" />
-                  <ellipse cx="780"  cy="560" rx="220" ry="140" fill="rgba(20,60,160,0.04)" />
-                  <ellipse cx="420"  cy="580" rx="180" ry="120" fill="rgba(20,50,130,0.04)" />
-                  <ellipse cx="1100" cy="380" rx="160" ry="100" fill="rgba(10,100,60,0.04)" />
-                  <ellipse cx="1320" cy="580" rx="160" ry="120" fill="rgba(140,20,20,0.04)" />
+                  <ellipse cx="820" cy="420" rx="260" ry="140" fill="rgba(180,50,10,0.04)" />
+                  <ellipse cx="560" cy="400" rx="200" ry="120" fill="rgba(20,60,160,0.045)" />
 
                   {/* ── Jump lanes ── */}
-                  {JUMPS.map(([a, b]) => {
-                    const sa = SYSTEMS[a], sb = SYSTEMS[b]
+                  {MAP_JUMPS.map(([a, b]) => {
+                    const sa = MAP_SYSTEMS[a], sb = MAP_SYSTEMS[b]
                     if (!sa || !sb) return null
                     const playable = sa.play && sb.play
                     const crossFaction = sa.f !== sb.f
@@ -351,7 +300,7 @@ export default function MapView() {
                   })}
 
                   {/* ── Systems ── */}
-                  {Object.entries(SYSTEMS).map(([name, sys]) => {
+                  {Object.entries(MAP_SYSTEMS).map(([name, sys]) => {
                     const faction = F[sys.f]
                     const h = heat[name]
                     const isSel = selected === name
@@ -452,7 +401,7 @@ export default function MapView() {
       </div>
 
       {/* ── Detail panel ── */}
-      <div style={{
+      <div className="map-detail" style={{
         width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column',
         gap: 10, overflowY: 'auto',
       }}>
@@ -580,5 +529,6 @@ export default function MapView() {
         )}
       </div>
     </div>
+    </>
   )
 }

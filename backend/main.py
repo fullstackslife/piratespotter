@@ -8,6 +8,9 @@ import uuid
 
 from database import SessionLocal, Report, init_db
 
+# Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js
+VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx", "Magnus"})
+
 app = FastAPI(title="PirateSpotters API")
 
 import os
@@ -50,13 +53,13 @@ def seed_data():
         ("Port Olisar Approach", "Stanton", "ambush", "high", "Cutlass Black", "Two ships waiting at QT drop-out point"),
         ("Yela Belt", "Stanton", "patrol", "medium", "Buccaneer", "Solo pirate scanning miners"),
         ("Daymar Surface", "Stanton", "griefer", "low", None, "Ramming ships on landing pads"),
-        ("Jump Point to Pyro", "Pyro", "blockade", "high", "Hammerhead", "Org blockade, 4+ ships"),
+        ("Pyro jump side", "Pyro", "blockade", "high", "Hammerhead", "Org blockade, 4+ ships"),
         ("Covalex Hub", "Stanton", "ambush", "medium", "Freelancer MIS", None),
-        ("Magnus Gate", "Magnus", "patrol", "low", "Arrow", "Scout, non-aggressive so far"),
-        ("Nyx Station", "Nyx", "org", "high", None, "Known org holding the area, heavily armed"),
+        ("Magnus approach", "Magnus", "patrol", "low", "Arrow", "Scout, non-aggressive so far"),
+        ("Nyx relay", "Nyx", "org", "high", None, "Heavily armed group (intel via Pyro route)"),
         ("Crusader Orbit", "Stanton", "ambush", "medium", "Cutlass Black", "Waiting near comm arrays"),
-        ("Terra Prime Approach", "Terra", "griefer", "low", "Gladius", "Interdicting traders"),
-        ("Orion Mining Zone", "Orion", "blockade", "high", "Reclaimer + escorts", "Forcing tribute from miners"),
+        ("Ruin Station", "Pyro", "ambush", "medium", "Gladius", "Interdicting traders near Bloom"),
+        ("Fuego belt", "Pyro", "patrol", "low", "Freelancer", "Scanning miners"),
     ]
     for loc, sys, ptype, threat, ship, notes in seed:
         db.add(Report(
@@ -93,6 +96,11 @@ def get_reports(
 
 @app.post("/api/reports", status_code=201)
 def create_report(body: ReportCreate):
+    if body.system not in VALID_SYSTEMS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid system '{body.system}'. Use one of: {', '.join(sorted(VALID_SYSTEMS))}.",
+        )
     db = SessionLocal()
     report = Report(
         id=str(uuid.uuid4()),

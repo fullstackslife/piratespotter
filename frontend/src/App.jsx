@@ -99,20 +99,45 @@ export default function App() {
         </button>
       </header>
 
-      {/* ── Body ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+      {/* ── Body (responsive: stack on narrow / phone) ── */}
+      <div className="app-body" style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         {tab === 'feed' && (
           <>
-            <main style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', minWidth: 0 }}>
+            <main
+              className="app-main"
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: 'clamp(14px, 2vw, 28px) clamp(16px, 2.5vw, 36px)',
+                minWidth: 0,
+              }}
+            >
               <Feed key={refresh} />
             </main>
-            <aside style={{ width: 280, flexShrink: 0, borderLeft: '1px solid #1e2730', overflowY: 'auto', background: '#0a0d12' }}>
+            <aside
+              className="app-sidebar"
+              style={{
+                width: 'clamp(260px, 22vw, 380px)',
+                flexShrink: 0,
+                borderLeft: '1px solid #1e2730',
+                overflowY: 'auto',
+                background: '#0a0d12',
+              }}
+            >
               <Sidebar key={refresh} />
             </aside>
           </>
         )}
         {tab === 'map' && (
-          <main style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          <main
+            className="app-main"
+            style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: 'clamp(12px, 1.5vw, 24px)',
+              minWidth: 0,
+            }}
+          >
             <MapView />
           </main>
         )}
@@ -128,6 +153,16 @@ export default function App() {
           50% { opacity: 0.4; }
         }
         * { box-sizing: border-box; }
+        @media (max-width: 900px) {
+          .app-body { flex-direction: column !important; }
+          .app-sidebar {
+            width: 100% !important;
+            max-height: min(42vh, 360px);
+            border-left: none !important;
+            border-top: 1px solid #1e2730;
+          }
+          .app-main { max-width: none !important; }
+        }
       `}</style>
     </div>
   )

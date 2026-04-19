@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import ReportCard from './ReportCard'
 import { apiUrl } from '../api'
+import { REPORT_SYSTEM_OPTIONS } from '../scSystems'
 
-const SYSTEMS = ['All', 'Stanton', 'Pyro', 'Nyx', 'Magnus', 'Orion', 'Terra']
+const SYSTEMS = ['All', ...REPORT_SYSTEM_OPTIONS]
 const TIME_RANGES = [
   { label: '1h', seconds: 3600 },
   { label: '6h', seconds: 21600 },

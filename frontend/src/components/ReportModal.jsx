@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { apiUrl } from '../api'
-
-const SYSTEMS = ['Stanton', 'Pyro', 'Nyx', 'Magnus', 'Orion', 'Terra']
+import { REPORT_SYSTEM_OPTIONS } from '../scSystems'
 const PIRATE_TYPES = ['ambush', 'blockade', 'patrol', 'org', 'griefer', 'other']
 const THREAT_LEVELS = ['low', 'medium', 'high']
 
@@ -37,7 +36,14 @@ export default function ReportModal({ onClose, onSubmit }) {
     if (res.ok) {
       onSubmit()
     } else {
-      setError('Failed to submit. Try again.')
+      let msg = 'Failed to submit. Try again.'
+      try {
+        const j = await res.json()
+        if (typeof j?.detail === 'string') msg = j.detail
+      } catch {
+        /* ignore */
+      }
+      setError(msg)
       setSubmitting(false)
     }
   }
@@ -73,7 +79,7 @@ export default function ReportModal({ onClose, onSubmit }) {
                 onChange={e => set('system', e.target.value)}
                 className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-sm text-[#c9d1d9] focus:outline-none focus:border-red-700"
               >
-                {SYSTEMS.map(s => <option key={s}>{s}</option>)}
+                {REPORT_SYSTEM_OPTIONS.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
