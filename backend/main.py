@@ -28,6 +28,11 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.get("/")
+def root():
+    """Health check endpoint."""
+    return {"status": "ok", "service": "piratespotter-api"}
+
 # Security Setup
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", uuid.uuid4().hex)
 ALGORITHM = "HS256"
