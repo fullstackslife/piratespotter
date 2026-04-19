@@ -452,7 +452,11 @@ export default function MapView() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.location}</div>
                       <div style={{ fontSize: 10, color: '#484f58', marginTop: 1, textTransform: 'capitalize' }}>
-                        {r.pirate_type}{r.ship ? ` · ${r.ship}` : ''}
+                        {r.pirate_type}
+                        {r.ship ? ` · ${r.ship}` : ''}
+                        {r.bounty_auec > 0 && !r.bounty_cleared && (
+                          <span style={{ color: '#fcd34d', marginLeft: 6 }}>· {Number(r.bounty_auec).toLocaleString()} aUEC</span>
+                        )}
                       </div>
                     </div>
                   </div>

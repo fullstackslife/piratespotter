@@ -71,7 +71,12 @@ export default function Sidebar() {
                 <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1"></span>
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-[#e6edf3] truncate">{r.location}</div>
-                  <div className="text-[10px] text-[#8b949e]">{r.system}</div>
+                  <div className="text-[10px] text-[#8b949e]">
+                    {r.system}
+                    {r.bounty_auec > 0 && !r.bounty_cleared && (
+                      <span className="text-amber-400/90 ml-1">· {Number(r.bounty_auec).toLocaleString()} aUEC</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

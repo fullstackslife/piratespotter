@@ -1,4 +1,6 @@
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text
+import json
+
+from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime, timezone
 
@@ -22,6 +24,34 @@ class Report(Base):
     notes = Column(Text, nullable=True)
     upvotes = Column(Integer, default=0)
     downvotes = Column(Integer, default=0)
+    # Intel: who filed + multiple hostile players
+    reporter_name = Column(String, nullable=True)
+    attackers_json = Column(Text, nullable=True)  # JSON list of {"handle": str, "ship": str | null}
+    # Bounty (in-game aUEC on honor system — not escrowed here)
+    bounty_auec = Column(Integer, default=0)
+    bounty_message = Column(Text, nullable=True)
+    bounty_hunter_name = Column(String, nullable=True)
+    bounty_claimed_at = Column(DateTime, nullable=True)
+    bounty_cleared = Column(Boolean, default=False)
+    bounty_cleared_at = Column(DateTime, nullable=True)
+
+    def attackers_list(self):
+        out = []
+        if self.attackers_json:
+            try:
+                raw = json.loads(self.attackers_json)
+                if isinstance(raw, list):
+                    for a in raw:
+                        if isinstance(a, dict):
+                            h = (a.get("handle") or "").strip()
+                            s = (a.get("ship") or "").strip() or None
+                            if h or s:
+                                out.append({"handle": h or "?", "ship": s})
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if not out and self.ship:
+            out.append({"handle": "?", "ship": self.ship.strip()})
+        return out
 
     def to_dict(self):
         return {
@@ -35,8 +65,41 @@ class Report(Base):
             "notes": self.notes,
             "upvotes": self.upvotes,
             "downvotes": self.downvotes,
+            "reporter_name": self.reporter_name,
+            "attackers": self.attackers_list(),
+            "bounty_auec": self.bounty_auec or 0,
+            "bounty_message": self.bounty_message,
+            "bounty_hunter_name": self.bounty_hunter_name,
+            "bounty_claimed_at": self.bounty_claimed_at.isoformat() if self.bounty_claimed_at else None,
+            "bounty_cleared": bool(self.bounty_cleared),
+            "bounty_cleared_at": self.bounty_cleared_at.isoformat() if self.bounty_cleared_at else None,
         }
+
+
+def _column_names(connection, table="reports"):
+    rows = connection.execute(text(f"PRAGMA table_info({table})")).fetchall()
+    return {r[1] for r in rows}
+
+
+def migrate_db():
+    """Add columns for existing SQLite DBs (create_all does not alter tables)."""
+    with engine.begin() as conn:
+        existing = _column_names(conn)
+        additions = [
+            ("reporter_name", "VARCHAR"),
+            ("attackers_json", "TEXT"),
+            ("bounty_auec", "INTEGER DEFAULT 0"),
+            ("bounty_message", "TEXT"),
+            ("bounty_hunter_name", "VARCHAR"),
+            ("bounty_claimed_at", "DATETIME"),
+            ("bounty_cleared", "BOOLEAN DEFAULT 0"),
+            ("bounty_cleared_at", "DATETIME"),
+        ]
+        for col, typ in additions:
+            if col not in existing:
+                conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col} {typ}"))
 
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    migrate_db()
