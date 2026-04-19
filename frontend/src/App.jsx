@@ -3,6 +3,7 @@ import Feed from './components/Feed'
 import ReportModal from './components/ReportModal'
 import MapView from './components/MapView'
 import Sidebar from './components/Sidebar'
+import BotGuide from './components/BotGuide'
 
 export default function App() {
   const [tab, setTab] = useState('feed')
@@ -49,8 +50,9 @@ export default function App() {
         {/* Nav tabs */}
         <nav style={{ display: 'flex', height: '100%', paddingLeft: 8 }}>
           {[
-            { key: 'feed', label: 'Live Feed' },
-            { key: 'map',  label: 'Star Map'  },
+            { key: 'feed',    label: 'Live Feed' },
+            { key: 'map',     label: 'Star Map'  },
+            { key: 'discord', label: '🤖 Discord Bot' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -129,6 +131,11 @@ export default function App() {
             minWidth: 0,
           }}>
             <MapView />
+          </main>
+        )}
+        {tab === 'discord' && (
+          <main className="app-main" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+            <BotGuide />
           </main>
         )}
       </div>
