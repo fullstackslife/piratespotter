@@ -32,9 +32,9 @@ services:
       - key: BOT_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://piratespotters.space
+        value: https://piratespotter-frontend.onrender.com
       - key: ALLOWED_ORIGINS
-        value: https://piratespotters.space
+        value: https://piratespotter-frontend.onrender.com
 
   # ── Frontend static site ───────────────────────────────────────
   - type: web
