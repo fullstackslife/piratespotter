@@ -32,15 +32,9 @@ services:
       - key: BOT_SECRET
         sync: false
       - key: FRONTEND_URL
-        fromService:
-          name: piratespotter-frontend
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://piratespotters.space
       - key: ALLOWED_ORIGINS
-        fromService:
-          name: piratespotter-frontend
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://piratespotters.space
 
   # ── Frontend static site ───────────────────────────────────────
   - type: web
