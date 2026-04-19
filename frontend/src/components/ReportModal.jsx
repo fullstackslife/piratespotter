@@ -64,7 +64,7 @@ export default function ReportModal({ onClose, onSubmit }) {
             <label className="text-xs text-[#8b949e] block mb-1">Location *</label>
             <input
               type="text"
-              placeholder="e.g. Port Olisar, Crusader moon, Gate 3..."
+              placeholder="e.g. Grim HEX, Ruin Station, jump gate…"
               value={form.location}
               onChange={e => set('location', e.target.value)}
               className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-sm text-[#c9d1d9] placeholder-[#484f58] focus:outline-none focus:border-red-700"
