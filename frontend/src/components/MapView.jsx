@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch'
 import { apiUrl } from '../api'
 import { MAP_SYSTEMS, MAP_JUMPS } from '../scSystems'
-import { STANTON_BODIES, PYRO_BODIES, STANTON_SPACE, PYRO_SPACE, POI_KIND } from '../scLocations'
+import { STANTON_BODIES, PYRO_BODIES, NYX_BODIES, STANTON_SPACE, PYRO_SPACE, NYX_SPACE, POI_KIND } from '../scLocations'
 import InnerOrbitChart from './InnerOrbitChart'
 import LocationTreePanel from './LocationTreePanel'
 
@@ -142,7 +142,7 @@ export default function MapView() {
           position: 'absolute', bottom: 12, left: 12, zIndex: 10,
           fontSize: 10, color: '#484f58',
         }}>
-          Scroll / zoom · drag to pan · all four systems — pan up for Terra, right for Nyx
+          Scroll / zoom · drag to pan · Stanton, Pyro & Nyx are PU — pan up for Terra (Starmap preview)
         </div>
         <div style={{
           position: 'absolute', top: 12, right: 12, zIndex: 10,
@@ -384,7 +384,7 @@ export default function MapView() {
               <div style={{ fontSize: 11, color: '#8b949e' }}>{selSys.desc}</div>
             </div>
 
-            {(selected === 'Terra' || selected === 'Nyx') && (
+            {selected === 'Terra' && (
               <div style={{
                 background: '#0d1117',
                 border: '1px solid #1e2730',
@@ -395,8 +395,8 @@ export default function MapView() {
                 lineHeight: 1.55,
               }}>
                 <p style={{ margin: 0 }}>
-                  This system appears on the official RSI Starmap with documented jump points (including via Pyro).
-                  Orbit diagrams are not rendered here so we do not invent layout.
+                  Terra is on the official RSI Starmap with documented jump points (e.g. from Pyro).
+                  It is not in the PU yet, so we do not render an orbit diagram or invented surface POIs.
                 </p>
                 <a
                   href="https://robertsspaceindustries.com/starmap"
@@ -409,25 +409,31 @@ export default function MapView() {
               </div>
             )}
 
-            {/* Orbit schematic + POI pins — Stanton / Pyro */}
-            {(selected === 'Stanton' || selected === 'Pyro') && (
+            {/* Orbit schematic + POI pins — Stanton / Pyro / Nyx (schematic only) */}
+            {(selected === 'Stanton' || selected === 'Pyro' || selected === 'Nyx') && (
               <div style={{
                 background: '#0d1117', border: '1px solid #1e2730',
                 borderRadius: 10, overflow: 'hidden', aspectRatio: '1 / 1',
               }}>
                 <InnerOrbitChart
-                  bodies={selected === 'Stanton' ? STANTON_BODIES : PYRO_BODIES}
-                  starColor={selected === 'Stanton' ? '#fdb462' : '#ff5510'}
-                  starR={selected === 'Stanton' ? 3.5 : 4.5}
+                  bodies={selected === 'Stanton' ? STANTON_BODIES : selected === 'Pyro' ? PYRO_BODIES : NYX_BODIES}
+                  starColor={selected === 'Stanton' ? '#fdb462' : selected === 'Pyro' ? '#ff5510' : '#f0e8ff'}
+                  starR={selected === 'Stanton' ? 3.5 : selected === 'Pyro' ? 4.5 : 3.8}
                 />
               </div>
             )}
 
-            {(selected === 'Stanton' || selected === 'Pyro') && (
+            {(selected === 'Stanton' || selected === 'Pyro' || selected === 'Nyx') && (
               <LocationTreePanel
-                title={selected === 'Stanton' ? 'Stanton — moons, cities, stations' : 'Pyro — bodies & stations'}
-                spaceExtras={selected === 'Stanton' ? STANTON_SPACE : PYRO_SPACE}
-                bodies={selected === 'Stanton' ? STANTON_BODIES : PYRO_BODIES}
+                title={
+                  selected === 'Stanton'
+                    ? 'Stanton — moons, cities, stations'
+                    : selected === 'Pyro'
+                    ? 'Pyro — bodies & stations'
+                    : 'Nyx — planets, Delamar, belts'
+                }
+                spaceExtras={selected === 'Stanton' ? STANTON_SPACE : selected === 'Pyro' ? PYRO_SPACE : NYX_SPACE}
+                bodies={selected === 'Stanton' ? STANTON_BODIES : selected === 'Pyro' ? PYRO_BODIES : NYX_BODIES}
               />
             )}
 

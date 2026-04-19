@@ -1,7 +1,7 @@
 /**
  * Systems & jumps sourced from RSI (Galactapedia / Starmap — Pyro system jump table).
- * - PU today: Stanton, Pyro (playable; reports allowed).
- * - Starmap / lore, not PU yet: Nyx, Terra (shown on map + jumps; Terra not in report dropdown).
+ * - PU today: Stanton, Pyro, Nyx (playable; reports allowed).
+ * - Starmap / lore, not PU yet: Terra (shown on map + jumps; Terra not in report dropdown).
  * Topology: Stanton↔Pyro (in game); Pyro↔Nyx; Pyro↔Terra (official jump points, not direct Stanton–Nyx).
  */
 
@@ -42,9 +42,9 @@ export const MAP_SYSTEMS = {
     x: 940,
     y: 520,
     f: 'lawless',
-    play: false,
+    play: true,
     r: 16,
-    desc: 'Unclaimed — on RSI Starmap; jump from Pyro. Not a direct Stanton jump.',
+    desc: "Unclaimed — playable (Delamar / Levski, belts, People's Alliance hubs; wiki / Galactapedia).",
   },
   Terra: {
     x: 620,

@@ -1,6 +1,6 @@
 /**
- * Major Stanton / Pyro locations for the tactical map UI.
- * Names follow in-game / Galactapedia / Stanton & Pyro wiki (starcitizen.tools); schematic orbit angles are for display only.
+ * Major PU locations for the tactical map UI (Stanton, Pyro, Nyx).
+ * Names follow in-game / Galactapedia / starcitizen.tools where available; schematic orbit angles are for display only.
  */
 
 export const POI_KIND = {
@@ -338,7 +338,12 @@ export const PYRO_BODIES = [
     angle: 35,
     color: '#c04010',
     r: 1.9,
-    pois: [{ name: 'Surface prospect sites', kind: 'mining' }],
+    pois: [
+      { name: 'Solar flare & radiation hazard zones', kind: 'industrial' },
+      { name: 'Distortion storms (lethal irradiation)', kind: 'industrial' },
+      { name: 'Northern hemisphere cyclone', kind: 'orbital' },
+      { name: 'Surface survey / prospect sites', kind: 'mining' },
+    ],
     moons: [],
   },
   {
@@ -347,7 +352,12 @@ export const PYRO_BODIES = [
     angle: 115,
     color: '#a03010',
     r: 2.3,
-    pois: [{ name: 'Abandoned mining complexes', kind: 'industrial' }],
+    pois: [
+      { name: 'Abandoned mining complexes', kind: 'industrial' },
+      { name: 'Carbon monoxide atmosphere (toxic)', kind: 'industrial' },
+      { name: 'Valakkar / deep-worm hazard regions', kind: 'outpost' },
+      { name: 'Legacy cadmium & titanium workings', kind: 'mining' },
+    ],
     moons: [],
   },
   {
@@ -357,8 +367,13 @@ export const PYRO_BODIES = [
     color: '#cc6820',
     r: 2.4,
     pois: [
-      { name: 'Outlaw surface camps', kind: 'outpost' },
-      { name: 'Ruin-adjacent drug labs (lore)', kind: 'industrial' },
+      { name: 'Abandoned Pyrotechnic Amalgamated facilities', kind: 'industrial' },
+      { name: 'Outlaw & squatter camps', kind: 'outpost' },
+      { name: 'Citizens for Prosperity presence', kind: 'outpost' },
+      { name: 'Headhunters contest zones', kind: 'outpost' },
+      { name: 'XenoThreat contest zones', kind: 'outpost' },
+      { name: 'Brine seas & temperate biomes', kind: 'mining' },
+      { name: 'Cave Kopion habitats', kind: 'outpost' },
     ],
     moons: [],
   },
@@ -368,7 +383,11 @@ export const PYRO_BODIES = [
     angle: 275,
     color: '#884030',
     r: 2.0,
-    pois: [{ name: 'Captured-planet orbit (Pyro V)', kind: 'orbital' }],
+    pois: [
+      { name: 'Captured orbit of Pyro V', kind: 'orbital' },
+      { name: 'Warped collision geology', kind: 'mining' },
+      { name: 'Reformed atmosphere — surface expeditions', kind: 'outpost' },
+    ],
     moons: [],
   },
   {
@@ -377,14 +396,17 @@ export const PYRO_BODIES = [
     angle: 355,
     color: '#5a9020',
     r: 3.1,
-    pois: [{ name: 'Hydrogen skimming (upper atmosphere)', kind: 'industrial' }],
+    pois: [
+      { name: 'Hydrogen skimming (upper atmosphere)', kind: 'industrial' },
+      { name: 'Low-yield refuel lanes', kind: 'industrial' },
+    ],
     moons: [
-      { name: 'Ignis', pois: [{ name: 'Surface canyons / outposts', kind: 'outpost' }] },
-      { name: 'Vatra', pois: [{ name: 'Dense-atmosphere sites', kind: 'outpost' }] },
-      { name: 'Adir', pois: [{ name: 'Craters / seismic POIs', kind: 'mining' }] },
-      { name: 'Fairo', pois: [{ name: 'Seismic / brackish seas', kind: 'mining' }] },
-      { name: 'Fuego', pois: [{ name: 'Headhunters lore stash regions', kind: 'outpost' }] },
-      { name: 'Vuur', pois: [{ name: 'Carbon-rich flora sites', kind: 'mining' }] },
+      { name: 'Ignis', pois: [{ name: 'Deep canyons & dry riverbeds', kind: 'outpost' }, { name: 'SO₂ atmosphere — suit O₂ scrape', kind: 'industrial' }] },
+      { name: 'Vatra', pois: [{ name: 'N₂–CH₄ haze & hydrocarbon flora', kind: 'outpost' }] },
+      { name: 'Adir', pois: [{ name: 'Craters & jagged highlands', kind: 'mining' }] },
+      { name: 'Fairo', pois: [{ name: 'Seismic brackish seas', kind: 'mining' }, { name: 'Subsurface ecology sites', kind: 'outpost' }] },
+      { name: 'Fuego', pois: [{ name: 'Iron-sulfide badlands', kind: 'mining' }, { name: 'Headhunters stash lore regions', kind: 'outpost' }] },
+      { name: 'Vuur', pois: [{ name: 'Crystalline carbon flora', kind: 'mining' }, { name: 'Warmer carbon-rich basins', kind: 'outpost' }] },
     ],
   },
   {
@@ -394,8 +416,11 @@ export const PYRO_BODIES = [
     color: '#708090',
     r: 2.2,
     pois: [
-      { name: 'Ruin Station', kind: 'station' },
-      { name: 'XenoThreat control (lore)', kind: 'industrial' },
+      { name: 'Ruin Station (orbital)', kind: 'station' },
+      { name: 'Neutrality (station bar)', kind: 'station' },
+      { name: 'Corner Four (labs / drug factories)', kind: 'industrial' },
+      { name: 'XenoThreat, Overlords, Fire Rats, Darkside Rovers (contested)', kind: 'outpost' },
+      { name: 'Methane ice surface expeditions', kind: 'mining' },
     ],
     moons: [],
   },
@@ -404,6 +429,94 @@ export const PYRO_BODIES = [
 export const PYRO_SPACE = [
   { name: 'Stanton Gateway', kind: 'gate', note: 'Jump station toward Stanton (Galactapedia / in-game).' },
   { name: 'Nyx Gateway', kind: 'gate', note: 'Jump station toward Nyx (Galactapedia / in-game).' },
+  { name: 'Akiro Cluster', kind: 'asteroid_belt', note: 'Charred asteroids near Pyro I L3; rare materials (wiki / Starmap).' },
+  { name: 'Checkmate Station (Monox L4)', kind: 'lagrange', note: "Rough & Ready HQ; Fool's Run exterior race (wiki)." },
+  { name: 'Orbituary', kind: 'station', note: 'Above Bloom — Rough & Ready marketplace, clinic, habs (wiki).' },
   { name: 'Pyro V Lagrange platforms', kind: 'lagrange', note: 'Former Pyrotechnic Amalgamated stations at L-points (Galactapedia).' },
-  { name: 'Rough & Ready / CfP hubs', kind: 'station', note: 'Faction-controlled stations (wiki summary).' },
+  { name: 'Terminus Lagrange (PA derelicts)', kind: 'lagrange', note: 'Former Pyrotechnic stations at Terminus L-points (wiki).' },
+  { name: 'Pyro I Lagrange (PA derelicts)', kind: 'lagrange', note: 'Abandoned company stations at Pyro I L-points (wiki).' },
+  {
+    name: 'Minor asteroid clusters',
+    kind: 'asteroid_belt',
+    note: 'Named clusters e.g. BGR-560, CAJ-445, EMM-567, FSN-704, GRP-839, JWY-925, HJS-232, KKE-717, LHB-976, MNK-833, NDB-102, PQE-291, RSC-340, SGL-693, SZA-178, TYS-908, VUP-613, WDH-387, YKA-011 (wiki Pyro system).',
+  },
+  { name: 'Rough & Ready stations', kind: 'station', note: 'Faction hubs including Checkmate & Orbituary (wiki).' },
+  { name: 'Citizens for Prosperity stations', kind: 'station', note: 'CfP-controlled sites in Pyro (wiki system summary).' },
+]
+
+/** Nyx bodies + Levski (Alpha 4.4+); belts & gates in NYX_SPACE. */
+export const NYX_BODIES = [
+  {
+    name: 'Nyx I',
+    orbit: 0.2,
+    angle: 40,
+    color: '#7a6a58',
+    r: 2.2,
+    pois: [
+      { name: 'Gold Horizon legacy strip mines', kind: 'mining' },
+      { name: 'Coreless depleted husk — surface ruins', kind: 'outpost' },
+    ],
+    moons: [],
+  },
+  {
+    name: 'Nyx II',
+    orbit: 0.38,
+    angle: 160,
+    color: '#8a5038',
+    r: 2.35,
+    pois: [
+      { name: 'High-pressure acid & CO₂ clouds', kind: 'industrial' },
+      { name: 'No major landing zones', kind: 'orbital' },
+    ],
+    moons: [],
+  },
+  {
+    name: 'Delamar',
+    orbit: 0.56,
+    angle: 280,
+    color: '#6b7580',
+    r: 2.15,
+    pois: [
+      { name: 'Levski (free port)', kind: 'city' },
+      { name: 'Cargo Deck', kind: 'station' },
+      { name: 'Mercy Hospital', kind: 'station' },
+      { name: "Teach's Ship Shop", kind: 'station' },
+      { name: 'Grand Barter Bazaar', kind: 'outpost' },
+      { name: 'Conscientious Objects (weapons)', kind: 'outpost' },
+      { name: "Cordry's (armor)", kind: 'outpost' },
+      { name: 'Café Musain', kind: 'outpost' },
+      { name: 'Borehole Station', kind: 'industrial' },
+      { name: 'Refinery deck', kind: 'industrial' },
+      { name: 'Municipal Services', kind: 'industrial' },
+      { name: 'Anthony Tanaka memorial', kind: 'outpost' },
+      { name: 'Exterior landing towers & pads', kind: 'landing' },
+    ],
+    moons: [],
+  },
+  {
+    name: 'Nyx III',
+    orbit: 0.76,
+    angle: 95,
+    color: '#4a6a8a',
+    r: 2.5,
+    pois: [
+      { name: 'Ice giant — no breathable surface', kind: 'orbital' },
+      { name: 'Outer system refuel / survey lanes', kind: 'industrial' },
+    ],
+    moons: [],
+  },
+]
+
+export const NYX_SPACE = [
+  { name: 'Glaciem Ring (Nyx belt alpha)', kind: 'asteroid_belt', note: 'Dense inner belt; Delamar embedded here (Galactapedia).' },
+  { name: 'Keeger Belt (Nyx belt beta)', kind: 'asteroid_belt', note: 'Outermost belt; suspected outlaw strongholds (Galactapedia).' },
+  { name: 'Moraine settlements', kind: 'outpost', note: 'Smuggler faction sites scattered through the Glaciem Ring (wiki).' },
+  {
+    name: "People's service stations",
+    kind: 'station',
+    note: "Keeger Belt — former QV Planet Services hubs, now People's Alliance (Alpha 4.7+; wiki).",
+  },
+  { name: 'Pyro Gateway (Nyx side)', kind: 'gate', note: 'Jump interface toward Pyro (wiki jump table).' },
+  { name: 'Stanton jump (Nyx)', kind: 'gate', note: 'Large bidirectional JP toward Stanton (wiki Nyx system).' },
+  { name: 'Castra / Bremen / Odin / Tohil / Virgil jumps', kind: 'gate', note: 'Additional large/medium links on RSI Starmap (not all PU).' },
 ]
