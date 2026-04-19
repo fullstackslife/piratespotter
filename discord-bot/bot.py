@@ -12,6 +12,7 @@ No CHANNEL_ID or BOUNTY_CHANNEL_ID env vars needed.
 
 import asyncio
 import os
+import re
 from aiohttp import web, ClientSession, ClientError, ClientTimeout
 import discord
 from discord import app_commands
@@ -147,63 +148,100 @@ async def setup_command(
             await interaction.followup.send(f"Could not reach PirateSpotters: {exc}", ephemeral=True)
 
 
-# ── /report ───────────────────────────────────────────────────────────────────
+# ── Report modal ──────────────────────────────────────────────────────────────
 
-@tree.command(name="report", description="Report pirate activity in Star Citizen")
-@app_commands.describe(
-    location="Where you spotted them (e.g. Grim HEX, Ruin Station, Levski)",
-    system="Star system: Stanton, Pyro, or Nyx",
-    threat="Threat level: low, medium, or high",
-    type="Encounter type: ambush, blockade, patrol, org, griefer, or other",
-    attackers="Pirate handles, comma-separated (e.g. xX_Pirate_Xx, gr1m)",
-    ships="Ship types, comma-separated — matched to attackers in order",
-    notes="Additional details",
-    bounty="Bounty you're offering in aUEC (honor system)",
-    bounty_message="Conditions for collecting the bounty",
-)
-@app_commands.autocomplete(system=system_autocomplete, threat=threat_autocomplete, type=type_autocomplete)
-async def report_command(
-    interaction: discord.Interaction,
-    location: str,
-    system: str = "Stanton",
-    threat: str = "medium",
-    type: str = "ambush",
-    attackers: str | None = None,
-    ships: str | None = None,
-    notes: str | None = None,
-    bounty: int = 0,
-    bounty_message: str | None = None,
-):
-    await interaction.response.defer(thinking=True)
+class ReportModal(discord.ui.Modal, title="☠ Report Pirate Activity"):
+    location = discord.ui.TextInput(
+        label="Location",
+        placeholder="e.g. Grim HEX, Ruin Station, Levski, Aaron Halo",
+        required=True,
+        max_length=200,
+    )
+    system_threat = discord.ui.TextInput(
+        label="System  |  Threat  |  Type",
+        placeholder="Stanton | medium | ambush",
+        default="Stanton | medium | ambush",
+        required=True,
+        max_length=60,
+    )
+    attackers = discord.ui.TextInput(
+        label="Attackers  (handle:ship, handle:ship, ...)",
+        placeholder="xX_Pirate_Xx:Cutlass Black, gr1m:Gladius",
+        required=False,
+        max_length=500,
+    )
+    notes = discord.ui.TextInput(
+        label="Notes",
+        placeholder="What happened? Tactics, org colors, escape routes...",
+        required=False,
+        style=discord.TextStyle.paragraph,
+        max_length=1000,
+    )
+    bounty = discord.ui.TextInput(
+        label="Bounty (optional)  —  amount in aUEC | terms",
+        placeholder="500000 | Kill on sight, screenshot proof required",
+        required=False,
+        max_length=300,
+    )
 
-    system = _normalize(system, VALID_SYSTEMS, "Stanton")
-    threat = _normalize(threat, THREAT_LEVELS, "medium")
-    pirate_type = _normalize(type, PIRATE_TYPES, "other")
-    reporter = interaction.user.display_name[:64]
+    def __init__(self, interaction_ref: discord.Interaction):
+        super().__init__()
+        self._origin = interaction_ref
 
-    attacker_list = []
-    if attackers:
-        handles = [h.strip()[:64] for h in attackers.split(",") if h.strip()]
-        ship_list = [s.strip()[:120] for s in ships.split(",")] if ships else []
-        for i, handle in enumerate(handles):
-            attacker_list.append({
-                "handle": handle,
-                "ship": ship_list[i] if i < len(ship_list) else None,
-            })
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
-    payload = {
-        "location": location.strip()[:200],
-        "system": system,
-        "pirate_type": pirate_type,
-        "threat_level": threat,
-        "ship": attacker_list[0]["ship"] if attacker_list and attacker_list[0].get("ship") else None,
-        "notes": notes.strip()[:1000] if notes else None,
-        "reporter_name": reporter,
-        "attackers": attacker_list,
-        "bounty_auec": max(0, bounty),
-        "bounty_message": bounty_message.strip()[:500] if bounty_message else None,
-    }
+        # Parse system | threat | type
+        parts = [p.strip() for p in self.system_threat.value.split("|")]
+        system = _normalize(parts[0] if len(parts) > 0 else "", VALID_SYSTEMS, "Stanton")
+        threat = _normalize(parts[1] if len(parts) > 1 else "", THREAT_LEVELS, "medium")
+        pirate_type = _normalize(parts[2] if len(parts) > 2 else "", PIRATE_TYPES, "ambush")
 
+        # Parse attackers — "handle:ship, handle:ship"
+        attacker_list = []
+        if self.attackers.value.strip():
+            for entry in self.attackers.value.split(","):
+                entry = entry.strip()
+                if not entry:
+                    continue
+                if ":" in entry:
+                    handle, ship = entry.split(":", 1)
+                    attacker_list.append({"handle": handle.strip()[:64], "ship": ship.strip()[:120] or None})
+                else:
+                    attacker_list.append({"handle": entry[:64], "ship": None})
+
+        # Parse bounty — "500000 | terms"
+        bounty_auec = 0
+        bounty_message = None
+        if self.bounty.value.strip():
+            b_parts = self.bounty.value.split("|", 1)
+            try:
+                bounty_auec = int(re.sub(r"[^\d]", "", b_parts[0]))
+            except ValueError:
+                bounty_auec = 0
+            bounty_message = b_parts[1].strip()[:500] if len(b_parts) > 1 else None
+
+        reporter = interaction.user.display_name[:64]
+        payload = {
+            "location": self.location.value.strip()[:200],
+            "system": system,
+            "pirate_type": pirate_type,
+            "threat_level": threat,
+            "ship": attacker_list[0]["ship"] if attacker_list and attacker_list[0].get("ship") else None,
+            "notes": self.notes.value.strip()[:1000] or None,
+            "reporter_name": reporter,
+            "attackers": attacker_list,
+            "bounty_auec": max(0, bounty_auec),
+            "bounty_message": bounty_message,
+        }
+
+        await _submit_report(interaction, payload, bounty_auec)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        await interaction.response.send_message(f"Something went wrong: {error}", ephemeral=True)
+
+
+async def _submit_report(interaction: discord.Interaction, payload: dict, bounty_auec: int):
     async with ClientSession() as session:
         try:
             async with session.post(
@@ -214,6 +252,7 @@ async def report_command(
                 if resp.status == 201:
                     report = await resp.json()
                     sid = _short_id(report["id"])
+                    reporter = payload["reporter_name"]
                     embed = _build_embed(report, reporter)
                     await interaction.followup.send(
                         f"Report filed! `ID: {sid}` · <https://piratespotters.space>",
@@ -225,7 +264,7 @@ async def report_command(
                     target = interaction.guild.get_channel(alert_ch_id) if alert_ch_id else interaction.channel
                     if target:
                         await target.send(embed=embed)
-                    if bounty > 0 and bounty_ch_id:
+                    if bounty_auec > 0 and bounty_ch_id:
                         bounty_ch = interaction.guild.get_channel(bounty_ch_id)
                         if bounty_ch:
                             await bounty_ch.send(embed=_build_bounty_embed(report))
@@ -234,6 +273,13 @@ async def report_command(
                     await interaction.followup.send(f"API error {resp.status}: {body[:200]}", ephemeral=True)
         except ClientError as exc:
             await interaction.followup.send(f"Could not reach PirateSpotters: {exc}", ephemeral=True)
+
+
+# ── /report ───────────────────────────────────────────────────────────────────
+
+@tree.command(name="report", description="Report pirate activity — opens a form")
+async def report_command(interaction: discord.Interaction):
+    await interaction.response.send_modal(ReportModal(interaction))
 
 
 # ── /intel ────────────────────────────────────────────────────────────────────
@@ -577,8 +623,39 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
-    await tree.sync(guild=guild)  # instant commands for new servers
+    await tree.sync(guild=guild)
     print(f"Joined guild {guild.name} ({guild.id}), synced commands")
+
+    setup_msg = (
+        "**☠ PirateSpotter has landed in your server!**\n\n"
+        "Here's how to get set up in 2 steps:\n\n"
+        "**Step 1 — Pick your channels** *(admin only)*\n"
+        "Run this in your server to wire up where reports and bounties get posted:\n"
+        "```\n/setup alerts:#your-alerts-channel bounties:#your-bounty-channel\n```\n"
+        "**Step 2 — Start reporting**\n"
+        "Anyone can run `/report` — a form pops up, fill it in, done.\n\n"
+        "**All commands:**\n"
+        "`/report` — file a pirate sighting (opens a form)\n"
+        "`/intel` — show recent reports for a system\n"
+        "`/bounties` — see the active bounty board\n"
+        "`/claim <id>` — claim a bounty\n"
+        "`/cleared <id>` — mark a bounty cleared\n"
+        "`/wanted <handle>` — pull a pirate's full rap sheet\n"
+        "`/setup` — configure channels (admin only)\n\n"
+        "Live map & full feed: <https://piratespotters.space>"
+    )
+
+    # Try to DM the server owner first, fall back to first writable channel
+    try:
+        await guild.owner.send(setup_msg)
+        return
+    except Exception:
+        pass
+
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            await channel.send(setup_msg)
+            break
 
 
 # ── Health server ──────────────────────────────────────────────────────────────
