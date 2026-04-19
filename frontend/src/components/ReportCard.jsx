@@ -28,16 +28,21 @@ function formatReportAge(iso) {
   if (sec < 60) return { primary: `${sec}s ago`, detail: '', outdated }
   if (sec < 3600) {
     const m = Math.floor(sec / 60)
-    const s = sec % 60
-    return { primary: `${m}m ago`, detail: s > 0 ? `${s}s` : '', outdated }
+    return { primary: `${m}m ago`, detail: '', outdated }
   }
-  if (sec < 86400) {
-    const h = Math.floor(sec / 3600)
-    const m = Math.floor((sec % 3600) / 60)
-    return { primary: `${h}h ago`, detail: m > 0 ? `${m}m` : '', outdated }
+  const d = new Date(iso)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (d.toDateString() === today.toDateString()) {
+    return { primary: `Today ${timeStr}`, detail: '', outdated }
   }
-  const d = Math.floor(sec / 86400)
-  return { primary: `${d}d ago`, detail: '', outdated: true }
+  if (d.toDateString() === yesterday.toDateString()) {
+    return { primary: `Yesterday ${timeStr}`, detail: '', outdated }
+  }
+  const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return { primary: `${dateStr} ${timeStr}`, detail: '', outdated: true }
 }
 
 function formatAuec(n) {

@@ -287,20 +287,16 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     
     content_lower = content.lower()
     
-    # Basic inappropriate word filter (expanded list)
+    # Basic inappropriate word filter
     inappropriate_terms = {
         # Profanity and slurs
-        'fuck', 'fucking', 'fucker', 'shit', 'shitty', 'damn', 'bitch', 'bastard', 'asshole', 'cunt', 'dick', 'pussy',
+        'fuck', 'fucking', 'fucker', 'shit', 'shitty', 'bitch', 'bastard', 'asshole', 'cunt', 'dick', 'pussy',
         'nigger', 'nigga', 'chink', 'gook', 'kike', 'spic', 'wetback', 'faggot', 'tranny', 'retard', 'cuck',
         # Spam patterns
-        'troll', 'trolling', 'spam', 'test', 'testing', 'fake', 'joke', 'lol', 'lmao', 'rofl',
+        'spam', 'fake news', 'buy now', 'click here', 'free money', 'make money fast', 'work from home',
         # Excessive repetition
         'aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd',
         'eeeeeeeeeeeeeeee', 'ffffffffffffffff', 'gggggggggggggggg', 'hhhhhhhhhhhhhhhh',
-        # Common spam phrases
-        'buy now', 'click here', 'free money', 'make money fast', 'work from home',
-        # Game-specific inappropriate content
-        'grief', 'griefer', 'griefing', 'troll org', 'trollorg',
     }
     
     for term in inappropriate_terms:

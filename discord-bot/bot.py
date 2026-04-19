@@ -20,6 +20,7 @@ from discord.ext import commands
 
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
 BOT_SECRET = os.environ.get("BOT_SECRET", "")
+SITE_URL = os.environ.get("SITE_URL", "https://piratespotter-frontend.onrender.com")
 PORT = int(os.environ.get("PORT", "8080"))
 
 # 12 hex chars = 16^12 ≈ 281 trillion combinations; collision is impossible at any realistic scale.
@@ -258,7 +259,7 @@ async def _submit_report(interaction: discord.Interaction, payload: dict, bounty
                     reporter = payload["reporter_name"]
                     embed = _build_embed(report, reporter)
                     await interaction.followup.send(
-                        f"Report filed! `ID: {sid}` · <https://piratespotters.space>",
+                        f"Report filed! `ID: {sid}` · <{SITE_URL}>",
                         ephemeral=True,
                     )
                     cfg = await _get_guild_config(interaction.guild_id)
@@ -316,7 +317,7 @@ async def intel_command(interaction: discord.Interaction, system: str = "All"):
     embed = discord.Embed(
         title=f"☠ Recent Pirate Intel — {system}",
         color=0xDC2626,
-        url="https://piratespotters.space",
+        url=SITE_URL,
     )
     for r in reports[:5]:
         threat = r.get("threat_level", "?")
@@ -333,7 +334,7 @@ async def intel_command(interaction: discord.Interaction, system: str = "All"):
         value += f"\n`ID: {_short_id(r['id'])}`"
         embed.add_field(name=f"{emoji} {r['location']}", value=value, inline=False)
 
-    embed.set_footer(text="piratespotters.space · live pirate intel")
+    embed.set_footer(text=f"{SITE_URL} · live pirate intel")
     await interaction.followup.send(embed=embed)
 
 
@@ -372,7 +373,7 @@ async def bounties_command(interaction: discord.Interaction, system: str = "All"
         return
 
     title = f"💰 Bounty Board — {system if system != 'All' else 'All Systems'}"
-    embed = discord.Embed(title=title, color=0xF59E0B, url="https://piratespotters.space")
+    embed = discord.Embed(title=title, color=0xF59E0B, url=SITE_URL)
 
     for r in active[:10]:
         attackers = r.get("attackers") or []
@@ -391,7 +392,7 @@ async def bounties_command(interaction: discord.Interaction, system: str = "All"
 
     count = len(active)
     suffix = f"Showing top 10 of {count} active bounties" if count > 10 else f"{count} active {'bounty' if count == 1 else 'bounties'}"
-    embed.set_footer(text=f"{suffix} · piratespotters.space")
+    embed.set_footer(text=f"{suffix} · {SITE_URL}")
     await interaction.followup.send(embed=embed)
 
 
@@ -527,7 +528,7 @@ async def wanted_command(interaction: discord.Interaction, handle: str):
         title=f"☠ WANTED: {handle}",
         description=f"{len(matches)} incident{'s' if len(matches) != 1 else ''} on record",
         color=0x7F1D1D,
-        url="https://piratespotters.space",
+        url=SITE_URL,
     )
     embed.add_field(name="Known Systems", value=", ".join(sorted(systems_seen)), inline=True)
     embed.add_field(name="Known Ships", value=", ".join(sorted(ships_seen)) or "Unknown", inline=True)
@@ -554,9 +555,9 @@ async def wanted_command(interaction: discord.Interaction, handle: str):
         embed.add_field(name=f"📍 {r['location']} ({ts})", value=value, inline=False)
 
     if len(matches) > 5:
-        embed.set_footer(text=f"Showing 5 of {len(matches)} incidents · piratespotters.space")
+        embed.set_footer(text=f"Showing 5 of {len(matches)} incidents · {SITE_URL}")
     else:
-        embed.set_footer(text="piratespotters.space · live pirate intel")
+        embed.set_footer(text=f"{SITE_URL} · live pirate intel")
 
     await interaction.followup.send(embed=embed)
 
@@ -568,7 +569,7 @@ def _build_embed(report: dict, reporter: str) -> discord.Embed:
     embed = discord.Embed(
         title=f"{THREAT_EMOJI.get(threat, '')} Pirate spotted — {report['location']}",
         color=THREAT_COLOR.get(threat, 0xEF4444),
-        url="https://piratespotters.space",
+        url=SITE_URL,
     )
     embed.add_field(name="System", value=report["system"], inline=True)
     embed.add_field(name="Type", value=report["pirate_type"].title(), inline=True)
@@ -590,7 +591,7 @@ def _build_embed(report: dict, reporter: str) -> discord.Embed:
     if report.get("bounty_auec", 0) > 0:
         embed.add_field(name="Bounty", value=f"{report['bounty_auec']:,} aUEC (honor system)", inline=False)
 
-    embed.set_footer(text=f"Reported by {reporter} · ID: {_short_id(report['id'])} · piratespotters.space")
+    embed.set_footer(text=f"Reported by {reporter} · ID: {_short_id(report['id'])} · {SITE_URL}")
     return embed
 
 
@@ -603,14 +604,14 @@ def _build_bounty_embed(report: dict) -> discord.Embed:
         title=f"💰 New Bounty Posted — {report['location']}",
         description=f"**{report['bounty_auec']:,} aUEC** on the line",
         color=0xF59E0B,
-        url="https://piratespotters.space",
+        url=SITE_URL,
     )
     embed.add_field(name="System", value=report["system"], inline=True)
     embed.add_field(name="Threat", value=f"{THREAT_EMOJI.get(threat, '')} {threat.title()}", inline=True)
     embed.add_field(name="Target(s)", value=handle_str, inline=False)
     if report.get("bounty_message"):
         embed.add_field(name="Terms", value=report["bounty_message"][:300], inline=False)
-    embed.set_footer(text=f"Use /claim {sid} to take this bounty · piratespotters.space")
+    embed.set_footer(text=f"Use /claim {sid} to take this bounty · {SITE_URL}")
     return embed
 
 
@@ -645,7 +646,7 @@ async def on_guild_join(guild: discord.Guild):
         "`/cleared <id>` — mark a bounty cleared\n"
         "`/wanted <handle>` — pull a pirate's full rap sheet\n"
         "`/setup` — configure channels (admin only)\n\n"
-        "Live map & full feed: <https://piratespotters.space>"
+        f"Live map & full feed: <{SITE_URL}>"
     )
 
     # Try to DM the server owner first, fall back to first writable channel
