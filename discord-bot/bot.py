@@ -1,21 +1,24 @@
 """
 PirateSpotters Discord Bot
-Submits SC pirate reports to piratespotters.space via slash commands.
+Runs the Discord gateway + a minimal HTTP health server (required for Render free web tier).
 
 Env vars required:
   DISCORD_TOKEN  — bot token from Discord Developer Portal
-  BACKEND_URL    — e.g. https://api.piratespotters.space (no trailing slash)
+  BACKEND_URL    — e.g. https://piratespotter-api.onrender.com
   CHANNEL_ID     — (optional) channel ID to post public embeds; defaults to command channel
+  PORT           — set automatically by Render
 """
 
+import asyncio
 import os
-import aiohttp
+from aiohttp import web, ClientSession, ClientError, ClientTimeout
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "0"))
+PORT = int(os.environ.get("PORT", "8080"))
 
 VALID_SYSTEMS = ["Stanton", "Pyro", "Nyx"]
 PIRATE_TYPES = ["ambush", "blockade", "patrol", "org", "griefer", "other"]
@@ -80,20 +83,18 @@ async def report_command(
         "bounty_auec": 0,
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with ClientSession() as session:
         try:
             async with session.post(
                 f"{BACKEND_URL}/api/reports",
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=12),
+                timeout=ClientTimeout(total=12),
             ) as resp:
                 if resp.status == 201:
                     report = await resp.json()
                     embed = _build_embed(report, reporter)
-
-                    # Confirm privately, post publicly
                     await interaction.followup.send(
-                        f"Report filed! ID: `{report['id'][:8]}`\nView at <https://piratespotters.space>",
+                        f"Report filed! View at <https://piratespotters.space>",
                         ephemeral=True,
                     )
                     target = interaction.guild.get_channel(CHANNEL_ID) if CHANNEL_ID else interaction.channel
@@ -101,15 +102,9 @@ async def report_command(
                         await target.send(embed=embed)
                 else:
                     body = await resp.text()
-                    await interaction.followup.send(
-                        f"API error {resp.status}: {body[:300]}",
-                        ephemeral=True,
-                    )
-        except aiohttp.ClientError as exc:
-            await interaction.followup.send(
-                f"Could not reach PirateSpotters: {exc}",
-                ephemeral=True,
-            )
+                    await interaction.followup.send(f"API error {resp.status}: {body[:200]}", ephemeral=True)
+        except ClientError as exc:
+            await interaction.followup.send(f"Could not reach PirateSpotters: {exc}", ephemeral=True)
 
 
 @tree.command(name="intel", description="Show recent pirate reports for a system")
@@ -117,17 +112,16 @@ async def report_command(
 async def intel_command(interaction: discord.Interaction, system: str = "All"):
     await interaction.response.defer(thinking=True)
 
-    params = {}
+    params = {"limit": "5"}
     if system.title() in VALID_SYSTEMS:
         params["system"] = system.title()
-    params["limit"] = 5
 
-    async with aiohttp.ClientSession() as session:
+    async with ClientSession() as session:
         try:
             async with session.get(
                 f"{BACKEND_URL}/api/reports",
                 params=params,
-                timeout=aiohttp.ClientTimeout(total=10),
+                timeout=ClientTimeout(total=10),
             ) as resp:
                 reports = await resp.json()
         except Exception as exc:
@@ -138,11 +132,7 @@ async def intel_command(interaction: discord.Interaction, system: str = "All"):
         await interaction.followup.send("No recent reports.", ephemeral=True)
         return
 
-    embed = discord.Embed(
-        title=f"☠ Recent Pirate Intel — {system}",
-        color=0xdc2626,
-        url="https://piratespotters.space",
-    )
+    embed = discord.Embed(title=f"☠ Recent Pirate Intel — {system}", color=0xdc2626, url="https://piratespotters.space")
     for r in reports[:5]:
         threat = r.get("threat_level", "?")
         emoji = THREAT_EMOJI.get(threat, "")
@@ -183,11 +173,7 @@ def _build_embed(report: dict, reporter: str) -> discord.Embed:
         embed.add_field(name="Notes", value=report["notes"][:500], inline=False)
 
     if report.get("bounty_auec", 0) > 0:
-        embed.add_field(
-            name="Bounty",
-            value=f"{report['bounty_auec']:,} aUEC (honor system)",
-            inline=False,
-        )
+        embed.add_field(name="Bounty", value=f"{report['bounty_auec']:,} aUEC (honor system)", inline=False)
 
     embed.set_footer(text=f"Reported by {reporter} · piratespotters.space")
     return embed
@@ -196,7 +182,31 @@ def _build_embed(report: dict, reporter: str) -> discord.Embed:
 @bot.event
 async def on_ready():
     await tree.sync()
-    print(f"PirateSpotters Bot ready — logged in as {bot.user} (ID: {bot.user.id})")
+    print(f"PirateSpotters Bot ready — {bot.user} (ID: {bot.user.id})")
 
 
-bot.run(os.environ["DISCORD_TOKEN"])
+# ── Minimal HTTP server so Render treats this as a web service ──────────────
+
+async def health(request):
+    return web.Response(text="ok")
+
+
+async def run_http():
+    app = web.Application()
+    app.router.add_get("/", health)
+    app.router.add_get("/health", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"Health server listening on port {PORT}")
+
+
+async def main():
+    await asyncio.gather(
+        run_http(),
+        bot.start(os.environ["DISCORD_TOKEN"]),
+    )
+
+
+asyncio.run(main())
