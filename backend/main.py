@@ -11,7 +11,8 @@ from database import SessionLocal, Report, init_db
 app = FastAPI(title="PirateSpotters API")
 
 import os
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+_origins = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = _origins.split(",") if _origins else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
