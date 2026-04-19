@@ -26,6 +26,8 @@ DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 SELF_URL = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:8000").rstrip("/")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://piratespotters.space").rstrip("/")
 BOT_SECRET = os.getenv("BOT_SECRET", "")
+_raw_admins = os.getenv("ADMIN_DISCORD_IDS", "197323176634482688")
+ADMIN_DISCORD_IDS = frozenset(x.strip() for x in _raw_admins.split(",") if x.strip())
 
 # Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js (Terra = map-only, not submittable)
 VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
@@ -136,11 +138,46 @@ def auth_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
 # ── Admin ──────────────────────────────────────────────────────────────────────
 
-@app.get("/api/admin/clear")
-def admin_clear(secret: str = Query(...)):
-    """Wipe all reports. Requires ADMIN_SECRET."""
-    if not os.getenv("ADMIN_SECRET") or secret != os.getenv("ADMIN_SECRET"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+def _require_admin(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub", "")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if user_id not in ADMIN_DISCORD_IDS:
+        raise HTTPException(status_code=403, detail="Admin only")
+    return payload
+
+
+@app.get("/api/admin/stats")
+def admin_stats(admin=Depends(_require_admin)):
+    db = SessionLocal()
+    total = db.query(Report).count()
+    by_system = {}
+    for r in db.query(Report).all():
+        by_system[r.system] = by_system.get(r.system, 0) + 1
+    db.close()
+    return {"total_reports": total, "by_system": by_system}
+
+
+@app.delete("/api/admin/reports/{report_id}")
+def admin_delete_report(report_id: str, admin=Depends(_require_admin)):
+    db = SessionLocal()
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        db.close()
+        raise HTTPException(status_code=404, detail="Report not found")
+    db.query(VoteTracking).filter(VoteTracking.report_id == report_id).delete()
+    db.delete(report)
+    db.commit()
+    db.close()
+    return {"deleted": report_id}
+
+
+@app.post("/api/admin/clear")
+def admin_clear(admin=Depends(_require_admin)):
     db = SessionLocal()
     count = db.query(Report).count()
     db.query(VoteTracking).delete()

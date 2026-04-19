@@ -4,6 +4,7 @@ import ReportModal from './components/ReportModal'
 import MapView from './components/MapView'
 import Sidebar from './components/Sidebar'
 import BotGuide from './components/BotGuide'
+import AdminPanel, { isAdmin } from './components/AdminPanel'
 import { getToken, setToken, clearToken, decodeToken, apiUrl } from './api'
 
 export default function App() {
@@ -84,6 +85,7 @@ export default function App() {
             { key: 'feed',    label: 'Live Feed' },
             { key: 'map',     label: 'Star Map'  },
             { key: 'discord', label: '🤖 Discord Bot' },
+            ...(isAdmin(user) ? [{ key: 'admin', label: '⚙ Admin' }] : []),
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -211,6 +213,11 @@ export default function App() {
         {tab === 'discord' && (
           <main className="app-main" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
             <BotGuide />
+          </main>
+        )}
+        {tab === 'admin' && isAdmin(user) && (
+          <main className="app-main" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+            <AdminPanel />
           </main>
         )}
       </div>
