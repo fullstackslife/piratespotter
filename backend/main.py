@@ -321,7 +321,6 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     return True
 
 
-_report_cooldown: dict[str, float] = {}  # discord_user_id -> last submission timestamp
 REPORT_COOLDOWN_SECS = 300  # 5 minutes
 
 
@@ -629,6 +628,7 @@ def create_report(body: ReportCreate, request: Request):
     # Bot bypass: Discord bot sends X-Bot-Key header
     bot_key = request.headers.get("X-Bot-Key", "")
     is_bot = BOT_SECRET and bot_key == BOT_SECRET
+    discord_user_id = None
     if not is_bot:
         # Require Discord OAuth JWT
         auth_header = request.headers.get("Authorization", "")
@@ -643,18 +643,28 @@ def create_report(body: ReportCreate, request: Request):
         except JWTError:
             raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
 
-        # 5-minute per-user cooldown
-        now = datetime.now(timezone.utc).timestamp()
-        last = _report_cooldown.get(discord_user_id, 0)
-        elapsed = now - last
-        if elapsed < REPORT_COOLDOWN_SECS:
-            remaining = int(REPORT_COOLDOWN_SECS - elapsed)
-            mins, secs = divmod(remaining, 60)
-            raise HTTPException(
-                status_code=429,
-                detail=f"You can submit one report every 5 minutes. Try again in {mins}m {secs}s.",
-            )
-        _report_cooldown[discord_user_id] = now
+        # 5-minute per-user cooldown — checked against DB so it survives restarts
+        now = datetime.now(timezone.utc)
+        cooldown_db = SessionLocal()
+        last_report = (
+            cooldown_db.query(Report)
+            .filter(Report.discord_user_id == discord_user_id)
+            .order_by(Report.created_at.desc())
+            .first()
+        )
+        cooldown_db.close()
+        if last_report and last_report.created_at:
+            last_ts = last_report.created_at
+            if last_ts.tzinfo is None:
+                last_ts = last_ts.replace(tzinfo=timezone.utc)
+            elapsed = (now - last_ts).total_seconds()
+            if elapsed < REPORT_COOLDOWN_SECS:
+                remaining = int(REPORT_COOLDOWN_SECS - elapsed)
+                mins, secs = divmod(remaining, 60)
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"You can submit one report every 5 minutes. Try again in {mins}m {secs}s.",
+                )
 
     if body.system not in VALID_SYSTEMS:
         raise HTTPException(
@@ -679,6 +689,7 @@ def create_report(body: ReportCreate, request: Request):
         ship=legacy_ship,
         notes=body.notes,
         reporter_name=body.reporter_name,
+        discord_user_id=discord_user_id if not is_bot else None,
         attackers_json=attackers_json,
         bounty_auec=body.bounty_auec,
         bounty_message=body.bounty_message.strip() if body.bounty_message else None,

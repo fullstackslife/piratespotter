@@ -34,6 +34,7 @@ class Report(Base):
     downvotes = Column(Integer, default=0)
     # Intel: who filed + multiple hostile players
     reporter_name = Column(String, nullable=True)
+    discord_user_id = Column(String, nullable=True, index=True)
     attackers_json = Column(Text, nullable=True)  # JSON list of {"handle": str, "ship": str | null}
     # Bounty (in-game aUEC on honor system — not escrowed here)
     bounty_auec = Column(Integer, default=0)
@@ -132,6 +133,7 @@ def migrate_db():
         existing = _column_names(conn)
         additions = [
             ("reporter_name", "VARCHAR"),
+            ("discord_user_id", "VARCHAR"),
             ("attackers_json", "TEXT"),
             ("bounty_auec", "INTEGER DEFAULT 0"),
             ("bounty_message", "TEXT"),
