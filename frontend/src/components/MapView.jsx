@@ -3,11 +3,11 @@ import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pa
 import { apiUrl } from '../api'
 import { MAP_SYSTEMS, MAP_JUMPS } from '../scSystems'
 
-// ── Map canvas dimensions (schematic; topology matches known jump links) ───────
-const W = 1160
-const H = 760
+// ── Map canvas dimensions (schematic; topology from RSI Pyro jump table) ───────
+const W = 1200
+const H = 800
 
-// ── Faction styling (only tags used on the two-node PU map) ───────────────────
+// ── Faction styling (UEE vs unclaimed on map) ─────────────────────────────────
 const F = {
   uee:     { core: '#2563a8', glow: '#3b82f6', label: '#93c5fd', name: 'UEE' },
   lawless: { core: '#9a3412', glow: '#f97316', label: '#fdba74', name: 'Unclaimed' },
@@ -219,7 +219,7 @@ export default function MapView() {
           position: 'absolute', top: 12, right: 12, zIndex: 10,
           fontSize: 10, color: '#484f58', maxWidth: 220, textAlign: 'right', lineHeight: 1.35,
         }}>
-          Schematic only — orbit diagram not to scale. Names from RSI Galactapedia / Starmap.
+          Schematic only — not to scale. Systems & jumps from RSI Galactapedia / Starmap (Pyro hub).
         </div>
 
         <TransformWrapper
@@ -279,16 +279,15 @@ export default function MapView() {
                   {MAP_JUMPS.map(([a, b]) => {
                     const sa = MAP_SYSTEMS[a], sb = MAP_SYSTEMS[b]
                     if (!sa || !sb) return null
-                    const playable = sa.play && sb.play
-                    const crossFaction = sa.f !== sb.f
-                    const strokeColor = crossFaction ? '#2a3550' : (playable ? '#1e3a5f' : '#0e1620')
+                    const bothPu = sa.play && sb.play
+                    const strokeColor = bothPu ? '#3d6a9e' : '#3a5580'
                     return (
                       <line key={`${a}-${b}`}
                         x1={sa.x} y1={sa.y} x2={sb.x} y2={sb.y}
                         stroke={strokeColor}
-                        strokeWidth={playable ? 1.2 : 0.6}
-                        strokeDasharray={playable ? '' : '4,3'}
-                        opacity={playable ? 0.85 : 0.45}
+                        strokeWidth={bothPu ? 1.35 : 1}
+                        strokeDasharray={bothPu ? '' : '6,5'}
+                        opacity={bothPu ? 0.92 : 0.72}
                       />
                     )
                   })}
@@ -304,10 +303,10 @@ export default function MapView() {
 
                     return (
                       <g key={name}
-                        onClick={e => { e.stopPropagation(); if (sys.play || h) setSelected(name) }}
+                        onClick={e => { e.stopPropagation(); setSelected(name) }}
                         onMouseEnter={() => setHovered(name)}
                         onMouseLeave={() => setHovered(null)}
-                        style={{ cursor: (sys.play || h) ? 'pointer' : 'default' }}
+                        style={{ cursor: 'pointer' }}
                       >
                         {/* Threat activity glow */}
                         {h && (
@@ -326,9 +325,9 @@ export default function MapView() {
                         )}
 
                         {/* Faction glow */}
-                        {showGlow && sys.play && (
+                        {showGlow && (sys.play || isSel || isHov) && (
                           <circle cx={sys.x} cy={sys.y} r={r + 3}
-                            fill={faction.glow} opacity="0.15" />
+                            fill={faction.glow} opacity={sys.play ? 0.15 : 0.1} />
                         )}
 
                         {/* System body */}
@@ -429,7 +428,9 @@ export default function MapView() {
                     }}>
                       {F[selSys.f].name}
                     </span>
-                    <span style={{ color: '#4ade80', fontSize: 10 }}>● Persistent Universe</span>
+                    <span style={{ color: selSys.play ? '#4ade80' : '#a78bfa', fontSize: 10 }}>
+                      {selSys.play ? '● Playable in PU' : '● On RSI Starmap — not in PU yet'}
+                    </span>
                   </div>
                 </div>
                 {selHeat && (
@@ -448,6 +449,31 @@ export default function MapView() {
               </div>
               <div style={{ fontSize: 11, color: '#8b949e' }}>{selSys.desc}</div>
             </div>
+
+            {(selected === 'Terra' || selected === 'Nyx') && (
+              <div style={{
+                background: '#0d1117',
+                border: '1px solid #1e2730',
+                borderRadius: 10,
+                padding: 14,
+                fontSize: 12,
+                color: '#8b949e',
+                lineHeight: 1.55,
+              }}>
+                <p style={{ margin: 0 }}>
+                  This system appears on the official RSI Starmap with documented jump points (including via Pyro).
+                  Orbit diagrams are not rendered here so we do not invent layout.
+                </p>
+                <a
+                  href="https://robertsspaceindustries.com/starmap"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#58a6ff', display: 'inline-block', marginTop: 10, fontWeight: 600 }}
+                >
+                  robertsspaceindustries.com/starmap
+                </a>
+              </div>
+            )}
 
             {/* Inner system map — Stanton / Pyro */}
             {(selected === 'Stanton' || selected === 'Pyro') && (

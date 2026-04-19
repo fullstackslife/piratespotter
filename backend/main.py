@@ -8,8 +8,8 @@ import uuid
 
 from database import SessionLocal, Report, init_db
 
-# Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js — PU systems only
-VALID_SYSTEMS = frozenset({"Stanton", "Pyro"})
+# Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js (Terra = map-only, not submittable)
+VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
 
 app = FastAPI(title="PirateSpotters API")
 
@@ -59,6 +59,7 @@ def seed_data():
         ("Crusader Orbit", "Stanton", "ambush", "medium", "Cutlass Black", "Waiting near comm arrays"),
         ("Ruin Station", "Pyro", "ambush", "medium", "Gladius", "Interdicting traders near Bloom"),
         ("Fuego belt", "Pyro", "patrol", "low", "Freelancer", "Scanning miners"),
+        ("Nyx Gateway side", "Nyx", "patrol", "medium", "Cutlass", "Intel near Pyro–Nyx jump"),
     ]
     for loc, sys, ptype, threat, ship, notes in seed:
         db.add(Report(
