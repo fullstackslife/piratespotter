@@ -136,7 +136,7 @@ def auth_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
 # ── Admin ──────────────────────────────────────────────────────────────────────
 
-@app.delete("/api/admin/clear")
+@app.get("/api/admin/clear")
 def admin_clear(secret: str = Query(...)):
     """Wipe all reports. Requires ADMIN_SECRET."""
     if not os.getenv("ADMIN_SECRET") or secret != os.getenv("ADMIN_SECRET"):
