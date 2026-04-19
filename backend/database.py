@@ -1,12 +1,20 @@
 import json
+import os
 
 from sqlalchemy import create_engine, Column, String, Integer, BigInteger, DateTime, Text, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime, timezone
 
-DATABASE_URL = "sqlite:///./piratespotters.db"
+# Render provides DATABASE_URL for linked PostgreSQL; fall back to SQLite for local dev.
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./piratespotters.db")
+# Render (and many hosts) emit "postgres://" but SQLAlchemy requires "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 

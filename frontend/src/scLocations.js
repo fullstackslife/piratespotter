@@ -417,7 +417,7 @@ export const PYRO_BODIES = [
     r: 2.2,
     pois: [
       { name: 'Ruin Station (orbital)', kind: 'station' },
-      { name: 'Neutrality (station bar)', kind: 'station' },
+      { name: 'Neutrality (bar inside Ruin Station)', kind: 'outpost' },
       { name: 'Corner Four (labs / drug factories)', kind: 'industrial' },
       { name: 'XenoThreat, Overlords, Fire Rats, Darkside Rovers (contested)', kind: 'outpost' },
       { name: 'Methane ice surface expeditions', kind: 'mining' },
@@ -485,7 +485,6 @@ export const NYX_BODIES = [
       { name: 'Conscientious Objects (weapons)', kind: 'outpost' },
       { name: "Cordry's (armor)", kind: 'outpost' },
       { name: 'Café Musain', kind: 'outpost' },
-      { name: 'Borehole Station', kind: 'industrial' },
       { name: 'Refinery deck', kind: 'industrial' },
       { name: 'Municipal Services', kind: 'industrial' },
       { name: 'Anthony Tanaka memorial', kind: 'outpost' },

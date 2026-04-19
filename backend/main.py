@@ -114,7 +114,6 @@ class BountyActionBody(BaseModel):
 @app.on_event("startup")
 def startup():
     init_db()
-    seed_data()
 
 
 def _ago(hours: float) -> datetime:
@@ -160,7 +159,7 @@ def seed_data():
          "Stealth Sabre loitering near Kareah. May be scouting UEE patrols.",
          "BountyHunterXL", 3.7, None, 0),
 
-        ("Crusader orbit — comm array ST4-23", "Stanton", "ambush", "high", "Eclipse",
+        ("Crusader orbit — Comm Array ST2-55", "Stanton", "ambush", "high", "Eclipse",
          "Torpedo bomber waiting at comm array. Took out a Constellation. No warning given.",
          "OrionTrader", 4.2,
          json.dumps([{"handle": "TorpedoKing_SC", "ship": "Eclipse"}]),
@@ -184,7 +183,7 @@ def seed_data():
          json.dumps([{"handle": "MissileMonk", "ship": "Freelancer MIS"}]),
          150_000),
 
-        ("Daymar — Bountiful Vista mine", "Stanton", "patrol", "low", "Pisces",
+        ("Daymar — Bountiful Harvest Hydroponics", "Stanton", "patrol", "low", "Pisces",
          "Pisces parked outside with two occupants. Asked for 'transit fee'. Left when we grouped up.",
          "ProspectorUnion", 8.0, None, 0),
 
