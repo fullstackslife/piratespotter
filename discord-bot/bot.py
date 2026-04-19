@@ -569,8 +569,16 @@ def _build_bounty_embed(report: dict) -> discord.Embed:
 
 @bot.event
 async def on_ready():
-    await tree.sync()
-    print(f"PirateSpotters Bot ready — {bot.user} (ID: {bot.user.id})")
+    await tree.sync()  # global sync (up to 1 hour to propagate)
+    for guild in bot.guilds:
+        await tree.sync(guild=guild)  # instant per-guild sync
+    print(f"PirateSpotters Bot ready — {bot.user} (ID: {bot.user.id}), synced to {len(bot.guilds)} guild(s)")
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild):
+    await tree.sync(guild=guild)  # instant commands for new servers
+    print(f"Joined guild {guild.name} ({guild.id}), synced commands")
 
 
 # ── Health server ──────────────────────────────────────────────────────────────
