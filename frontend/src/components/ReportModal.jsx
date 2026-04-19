@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { apiUrl } from '../api'
+import { authFetch } from '../api'
 import { REPORT_SYSTEM_OPTIONS } from '../scSystems'
 import { searchLocations } from '../locationSearch'
 
@@ -16,7 +16,7 @@ const emptyAttacker = () => ({ handle: '', ship: '' })
 
 const INPUT = 'w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-sm text-[#c9d1d9] placeholder-[#484f58] focus:outline-none focus:border-red-700'
 
-export default function ReportModal({ onClose, onSubmit }) {
+export default function ReportModal({ onClose, onSubmit, user }) {
   const [quickMode, setQuickMode] = useState(true)
   const [form, setForm] = useState({
     location: '',
@@ -25,7 +25,7 @@ export default function ReportModal({ onClose, onSubmit }) {
     threat_level: 'medium',
     ship: '',
     notes: '',
-    reporter_name: '',
+    reporter_name: user?.username ?? '',
     bounty_auec: '',
     bounty_message: '',
   })
@@ -100,14 +100,16 @@ export default function ReportModal({ onClose, onSubmit }) {
     setSubmitting(true)
     setError('')
     try {
-      const res = await fetch(apiUrl('/api/reports'), {
+      const res = await authFetch('/api/reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       if (res.ok) {
         const created = await res.json()
         onSubmit(created)
+      } else if (res.status === 401) {
+        setError('You must be signed in with Discord to submit a report.')
+        setSubmitting(false)
       } else {
         let msg = 'Failed to submit. Try again.'
         try {

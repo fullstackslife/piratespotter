@@ -19,6 +19,7 @@ from discord import app_commands
 from discord.ext import commands
 
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
+BOT_SECRET = os.environ.get("BOT_SECRET", "")
 PORT = int(os.environ.get("PORT", "8080"))
 
 # 12 hex chars = 16^12 ≈ 281 trillion combinations; collision is impossible at any realistic scale.
@@ -242,11 +243,13 @@ class ReportModal(discord.ui.Modal, title="☠ Report Pirate Activity"):
 
 
 async def _submit_report(interaction: discord.Interaction, payload: dict, bounty_auec: int):
+    headers = {"X-Bot-Key": BOT_SECRET} if BOT_SECRET else {}
     async with ClientSession() as session:
         try:
             async with session.post(
                 f"{BACKEND_URL}/api/reports",
                 json=payload,
+                headers=headers,
                 timeout=ClientTimeout(total=12),
             ) as resp:
                 if resp.status == 201:

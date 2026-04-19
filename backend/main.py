@@ -1,15 +1,18 @@
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlencode
 import json
 import os
 import random
 import re
 import uuid
 import hashlib
+import httpx
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -17,6 +20,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from database import SessionLocal, Report, GuildConfig, VoteTracking, init_db
+
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
+SELF_URL = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:8000").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://piratespotters.space").rstrip("/")
+BOT_SECRET = os.getenv("BOT_SECRET", "")
 
 # Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js (Terra = map-only, not submittable)
 VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
@@ -66,7 +75,82 @@ def startup():
     print("🎉 Backend startup complete!")
 
 
-# Printable in-game style names (no control chars / newlines)
+# ── Discord OAuth ─────────────────────────────────────────────────────────────
+
+@app.get("/api/auth/discord")
+def discord_auth_redirect():
+    params = urlencode({
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri": f"{SELF_URL}/api/auth/discord/callback",
+        "response_type": "code",
+        "scope": "identify",
+    })
+    return RedirectResponse(f"https://discord.com/api/oauth2/authorize?{params}")
+
+
+@app.get("/api/auth/discord/callback")
+async def discord_auth_callback(code: str):
+    if not DISCORD_CLIENT_ID or not DISCORD_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Discord OAuth not configured")
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            "https://discord.com/api/oauth2/token",
+            data={
+                "client_id": DISCORD_CLIENT_ID,
+                "client_secret": DISCORD_CLIENT_SECRET,
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": f"{SELF_URL}/api/auth/discord/callback",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        if token_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to exchange OAuth code")
+        access_token = token_resp.json().get("access_token")
+        user_resp = await client.get(
+            "https://discord.com/api/users/@me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        if user_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to fetch Discord user")
+        u = user_resp.json()
+
+    token = create_access_token({
+        "sub": u["id"],
+        "username": u.get("global_name") or u["username"],
+        "avatar": u.get("avatar"),
+    })
+    return RedirectResponse(f"{FRONTEND_URL}/#token={token}")
+
+
+@app.get("/api/auth/me")
+def auth_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"id": payload["sub"], "username": payload.get("username"), "avatar": payload.get("avatar")}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+# ── Admin ──────────────────────────────────────────────────────────────────────
+
+@app.delete("/api/admin/clear")
+def admin_clear(secret: str = Query(...)):
+    """Wipe all reports. Requires ADMIN_SECRET."""
+    if not os.getenv("ADMIN_SECRET") or secret != os.getenv("ADMIN_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    db = SessionLocal()
+    count = db.query(Report).count()
+    db.query(VoteTracking).delete()
+    db.query(Report).delete()
+    db.commit()
+    db.close()
+    return {"cleared": count}
+
+
+# ── Printable in-game style names (no control chars / newlines) ────────────────
 HANDLE_RE = re.compile(r"^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]{1,64}$")
 
 
@@ -542,7 +626,22 @@ def _attackers_payload(body: ReportCreate) -> tuple[Optional[str], Optional[str]
 @app.post("/api/reports", status_code=201)
 @limiter.limit("10/minute")
 def create_report(body: ReportCreate, request: Request):
-    # Allow anonymous report creation but apply content moderation
+    # Bot bypass: Discord bot sends X-Bot-Key header
+    bot_key = request.headers.get("X-Bot-Key", "")
+    if not (BOT_SECRET and bot_key == BOT_SECRET):
+        # Require Discord OAuth JWT
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Sign in with Discord to submit a report.")
+        try:
+            payload = jwt.decode(auth_header[7:], SECRET_KEY, algorithms=[ALGORITHM])
+            discord_username = payload.get("username", "")
+            # Use Discord username as reporter name if none provided
+            if not body.reporter_name and discord_username:
+                body.reporter_name = discord_username
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+
     if body.system not in VALID_SYSTEMS:
         raise HTTPException(
             status_code=400,
