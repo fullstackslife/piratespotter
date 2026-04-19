@@ -117,6 +117,11 @@ class VoteRequest(BaseModel):
     vote: str  # "up" or "down"
 
 
+class AuthTokenRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=64)
+    secret: str = Field(..., min_length=1)
+
+
 class GuildConfigUpdate(BaseModel):
     alert_channel_id: Optional[int] = None
     bounty_channel_id: Optional[int] = None
@@ -139,29 +144,43 @@ class BountyActionBody(BaseModel):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    if expires_delta is None:
+        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
+@app.post("/api/auth/token")
+@limiter.limit("5/minute")
+def issue_auth_token(body: AuthTokenRequest, request: Request):
+    """Issue a JWT for verified clients using a shared server secret."""
+    expected = os.getenv("AUTH_SECRET", "")
+    if not expected or body.secret != expected:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    user_id = body.user_id.strip()
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id must be provided")
+    access_token = create_access_token({"sub": user_id})
+    return {"access_token": access_token, "token_type": "bearer", "expires_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES}
+
+
 async def get_user_identifier(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
-    """Get user identifier from JWT token or fallback to IP hash"""
-    if credentials:
-        try:
-            payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-            user_id: str = payload.get("sub")
-            if user_id:
-                return f"user:{user_id}"
-        except JWTError:
-            pass
-    
-    # Fallback to hashed IP address
-    client_ip = request.client.host
-    return f"ip:{hashlib.sha256(client_ip.encode()).hexdigest()[:16]}"
+    """Get user identifier from a verified JWT token.
+
+    Anonymous IP fallback is disabled for live use to prevent spam and abuse.
+    """
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Authentication credentials were not provided")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+        return f"user:{user_id}"
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 def is_appropriate_content(content: Optional[str]) -> bool:
@@ -473,7 +492,8 @@ def _attackers_payload(body: ReportCreate) -> tuple[Optional[str], Optional[str]
 
 
 @app.post("/api/reports", status_code=201)
-def create_report(body: ReportCreate):
+@limiter.limit("10/minute")
+def create_report(body: ReportCreate, request: Request, user_identifier: str = Depends(get_user_identifier)):
     if body.system not in VALID_SYSTEMS:
         raise HTTPException(
             status_code=400,
@@ -504,7 +524,8 @@ def create_report(body: ReportCreate):
 
 
 @app.post("/api/reports/{report_id}/bounty", status_code=200)
-def bounty_action(report_id: str, body: BountyActionBody):
+@limiter.limit("10/minute")
+def bounty_action(report_id: str, body: BountyActionBody, request: Request, user_identifier: str = Depends(get_user_identifier)):
     """Honor-system bounty: claim = hunter commits; clear = threat handled (payout in-game)."""
     db = SessionLocal()
     report = db.query(Report).filter(Report.id == report_id).first()
