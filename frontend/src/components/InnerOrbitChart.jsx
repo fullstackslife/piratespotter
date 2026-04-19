@@ -10,7 +10,7 @@ export default function InnerOrbitChart({ bodies, starColor, starR = 4 }) {
 
   function PoiRing({ cx, cy, baseAngleDeg, pois, radius }) {
     if (!pois?.length) return null
-    const max = Math.min(pois.length, 12)
+    const max = Math.min(pois.length, 28)
     const slice = pois.slice(0, max)
     return slice.map((poi, i) => {
       const t = (i + 0.5) / max
