@@ -321,6 +321,10 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     return True
 
 
+_report_cooldown: dict[str, float] = {}  # discord_user_id -> last submission timestamp
+REPORT_COOLDOWN_SECS = 300  # 5 minutes
+
+
 def _ago(hours: float) -> datetime:
     return datetime.now(timezone.utc) - timedelta(hours=hours)
 
@@ -620,23 +624,37 @@ def _attackers_payload(body: ReportCreate) -> tuple[Optional[str], Optional[str]
 
 
 @app.post("/api/reports", status_code=201)
-@limiter.limit("10/minute")
+@limiter.limit("20/minute")
 def create_report(body: ReportCreate, request: Request):
     # Bot bypass: Discord bot sends X-Bot-Key header
     bot_key = request.headers.get("X-Bot-Key", "")
-    if not (BOT_SECRET and bot_key == BOT_SECRET):
+    is_bot = BOT_SECRET and bot_key == BOT_SECRET
+    if not is_bot:
         # Require Discord OAuth JWT
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Sign in with Discord to submit a report.")
         try:
             payload = jwt.decode(auth_header[7:], SECRET_KEY, algorithms=[ALGORITHM])
+            discord_user_id = payload.get("sub", "")
             discord_username = payload.get("username", "")
-            # Use Discord username as reporter name if none provided
             if not body.reporter_name and discord_username:
                 body.reporter_name = discord_username
         except JWTError:
             raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+
+        # 5-minute per-user cooldown
+        now = datetime.now(timezone.utc).timestamp()
+        last = _report_cooldown.get(discord_user_id, 0)
+        elapsed = now - last
+        if elapsed < REPORT_COOLDOWN_SECS:
+            remaining = int(REPORT_COOLDOWN_SECS - elapsed)
+            mins, secs = divmod(remaining, 60)
+            raise HTTPException(
+                status_code=429,
+                detail=f"You can submit one report every 5 minutes. Try again in {mins}m {secs}s.",
+            )
+        _report_cooldown[discord_user_id] = now
 
     if body.system not in VALID_SYSTEMS:
         raise HTTPException(
