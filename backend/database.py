@@ -84,6 +84,20 @@ class Report(Base):
         }
 
 
+class VoteTracking(Base):
+    __tablename__ = "vote_tracking"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    report_id = Column(String, nullable=False, index=True)
+    user_identifier = Column(String, nullable=False, index=True)
+    vote_type = Column(String, nullable=False)  # 'up' or 'down'
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __mapper_args__ = {
+        "concrete": True,
+    }
+
+
 class GuildConfig(Base):
     __tablename__ = "guild_configs"
 

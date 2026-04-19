@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime, timezone, timedelta
@@ -7,13 +8,32 @@ import json
 import random
 import re
 import uuid
+import hashlib
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
-from database import SessionLocal, Report, GuildConfig, init_db
+from database import SessionLocal, Report, GuildConfig, VoteTracking, init_db
 
 # Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js (Terra = map-only, not submittable)
 VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
 
 app = FastAPI(title="PirateSpotters API")
+
+# Rate Limiter Setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Security Setup
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", uuid.uuid4().hex)
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer(auto_error=False)
 
 import os
 _origins = os.getenv("ALLOWED_ORIGINS", "")
@@ -111,16 +131,43 @@ class BountyActionBody(BaseModel):
         return s
 
 
-@app.on_event("startup")
-def startup():
-    init_db()
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 
-def _ago(hours: float) -> datetime:
-    return datetime.now(timezone.utc) - timedelta(hours=hours)
+async def get_user_identifier(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """Get user identifier from JWT token or fallback to IP hash"""
+    if credentials:
+        try:
+            payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: str = payload.get("sub")
+            if user_id:
+                return f"user:{user_id}"
+        except JWTError:
+            pass
+    
+    # Fallback to hashed IP address
+    client_ip = request.client.host
+    return f"ip:{hashlib.sha256(client_ip.encode()).hexdigest()[:16]}"
 
 
-def seed_data():
+def is_appropriate_content(content: Optional[str]) -> bool:
+    """Basic content moderation filter"""
+    if not content:
+        return True
+    
+    content_lower = content.lower()
+    
+    # Basic inappropriate word filter (can be expanded as needed)
+    inappropriate_terms = {
+        '
     db = SessionLocal()
     if db.query(Report).count() > 0:
         db.close()
@@ -506,20 +553,61 @@ def put_guild_config(guild_id: str, body: GuildConfigUpdate):
 
 
 @app.post("/api/reports/{report_id}/vote")
-def vote_report(report_id: str, body: VoteRequest):
+@limiter.limit("5/minute")  # Max 5 votes per minute per IP
+def vote_report(
+    request: Request,
+    report_id: str,
+    body: VoteRequest,
+    user_identifier: str = Depends(get_user_identifier)
+):
     db = SessionLocal()
+    
+    # Find report
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         db.close()
         raise HTTPException(status_code=404, detail="Report not found")
-    if body.vote == "up":
-        report.upvotes += 1
-    elif body.vote == "down":
-        report.downvotes += 1
-    else:
+    
+    # Validate vote type
+    if body.vote not in ["up", "down"]:
         db.close()
         raise HTTPException(status_code=400, detail="Vote must be 'up' or 'down'")
+    
+    # Content moderation check - block votes on inappropriate reports
+    if not is_appropriate_content(report.notes) or not is_appropriate_content(report.bounty_message):
+        db.close()
+        raise HTTPException(status_code=403, detail="Report contains inappropriate content and cannot be voted on")
+    
+    # Check if user already voted on this report
+    existing_vote = db.query(VoteTracking).filter(
+        VoteTracking.report_id == report_id,
+        VoteTracking.user_identifier == user_identifier
+    ).first()
+    
+    if existing_vote:
+        db.close()
+        raise HTTPException(status_code=409, detail=f"You already voted {existing_vote.vote_type} on this report")
+    
+    # Record the vote
+    vote_tracking = VoteTracking(
+        report_id=report_id,
+        user_identifier=user_identifier,
+        vote_type=body.vote
+    )
+    db.add(vote_tracking)
+    
+    # Update vote counts
+    if body.vote == "up":
+        report.upvotes += 1
+    else:
+        report.downvotes += 1
+    
     db.commit()
     result = report.to_dict()
     db.close()
-    return result
+    
+    return {
+        **result,
+        "user_vote": body.vote,
+        "message": "Vote recorded successfully"
+    }
