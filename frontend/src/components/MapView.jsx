@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch'
+import { apiUrl } from '../api'
 
 // ── Map canvas dimensions ──────────────────────────────────────────────────────
 const W = 2000
@@ -230,9 +231,9 @@ export default function MapView() {
   const wrapperRef = useRef()
 
   useEffect(() => {
-    fetch('/api/reports?limit=500').then(r => r.json()).then(setReports)
+    fetch(apiUrl('/api/reports?limit=500')).then(r => r.json()).then(setReports)
     const t = setInterval(() =>
-      fetch('/api/reports?limit=500').then(r => r.json()).then(setReports), 15000)
+      fetch(apiUrl('/api/reports?limit=500')).then(r => r.json()).then(setReports), 15000)
     return () => clearInterval(t)
   }, [])
 

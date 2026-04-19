@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiUrl } from '../api'
 
 const THREAT_DOT = {
   high:   'bg-red-500',
@@ -10,11 +11,11 @@ export default function Sidebar() {
   const [reports, setReports] = useState([])
 
   useEffect(() => {
-    fetch('/api/reports?limit=200')
+    fetch(apiUrl('/api/reports?limit=200'))
       .then(r => r.json())
       .then(setReports)
     const t = setInterval(() => {
-      fetch('/api/reports?limit=200').then(r => r.json()).then(setReports)
+      fetch(apiUrl('/api/reports?limit=200')).then(r => r.json()).then(setReports)
     }, 15000)
     return () => clearInterval(t)
   }, [])

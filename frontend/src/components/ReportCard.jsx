@@ -1,3 +1,5 @@
+import { apiUrl } from '../api'
+
 const THREAT = {
   high:   { bar: 'bg-red-600',   badge: 'bg-red-950 text-red-400 border-red-800',   label: 'HIGH' },
   medium: { bar: 'bg-amber-500', badge: 'bg-amber-950 text-amber-400 border-amber-700', label: 'MED' },
@@ -26,7 +28,7 @@ export default function ReportCard({ report, onVote }) {
   const type = PIRATE_ICONS[report.pirate_type] || PIRATE_ICONS.other
 
   async function vote(v) {
-    await fetch(`/api/reports/${report.id}/vote`, {
+    await fetch(apiUrl(`/api/reports/${report.id}/vote`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vote: v }),

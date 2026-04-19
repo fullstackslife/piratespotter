@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiUrl } from '../api'
 
 const SYSTEMS = ['Stanton', 'Pyro', 'Nyx', 'Magnus', 'Orion', 'Terra']
 const PIRATE_TYPES = ['ambush', 'blockade', 'patrol', 'org', 'griefer', 'other']
@@ -28,7 +29,7 @@ export default function ReportModal({ onClose, onSubmit }) {
     }
     setSubmitting(true)
     setError('')
-    const res = await fetch('/api/reports', {
+    const res = await fetch(apiUrl('/api/reports'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),

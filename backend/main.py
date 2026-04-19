@@ -10,9 +10,12 @@ from database import SessionLocal, Report, init_db
 
 app = FastAPI(title="PirateSpotters API")
 
+import os
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

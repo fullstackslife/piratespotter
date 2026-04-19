@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReportCard from './ReportCard'
+import { apiUrl } from '../api'
 
 const SYSTEMS = ['All', 'Stanton', 'Pyro', 'Nyx', 'Magnus', 'Orion', 'Terra']
 const TIME_RANGES = [
@@ -23,7 +24,7 @@ export default function Feed() {
       const since = new Date(Date.now() - range.seconds * 1000).toISOString()
       params.set('since', since)
     }
-    const res = await fetch(`/api/reports?${params}`)
+    const res = await fetch(apiUrl(`/api/reports?${params}`))
     const data = await res.json()
     setReports(data)
     setLoading(false)
