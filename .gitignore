@@ -13,6 +13,5 @@ frontend/dist/
 .env.local
 *.env
 
-# OS
-.DS_Store
-Thumbs.db
+# Documentation (may contain sensitive info)
+docs/
