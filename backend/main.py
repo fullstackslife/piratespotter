@@ -167,7 +167,27 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     
     # Basic inappropriate word filter (can be expanded as needed)
     inappropriate_terms = {
-        '
+        # This list can be expanded with actual inappropriate terms
+        'example_bad_word', 'another_bad_term'
+    }
+    
+    for term in inappropriate_terms:
+        if term in content_lower:
+            return False
+    
+    # Check for excessive special characters / spam patterns
+    special_char_count = sum(1 for c in content if not c.isalnum() and c not in ' .,!?-')
+    if special_char_count > len(content) * 0.3:  # More than 30% special chars
+        return False
+    
+    return True
+
+
+def _ago(hours: float) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(hours=hours)
+
+
+def seed_data():
     db = SessionLocal()
     if db.query(Report).count() > 0:
         db.close()
