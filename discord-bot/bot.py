@@ -2,11 +2,12 @@
 PirateSpotters Discord Bot
 
 Env vars required:
-  DISCORD_TOKEN     — bot token from Discord Developer Portal
-  BACKEND_URL       — e.g. https://piratespotter-api.onrender.com
-  CHANNEL_ID        — (optional) channel ID for public alert embeds
-  BOUNTY_CHANNEL_ID — (optional) separate channel for bounty posts/updates
-  PORT              — set automatically by Render
+  DISCORD_TOKEN  — bot token from Discord Developer Portal
+  BACKEND_URL    — e.g. https://piratespotter-api.onrender.com
+  PORT           — set automatically by Render
+
+Channel configuration is done per-server with /setup inside Discord.
+No CHANNEL_ID or BOUNTY_CHANNEL_ID env vars needed.
 """
 
 import asyncio
@@ -17,8 +18,6 @@ from discord import app_commands
 from discord.ext import commands
 
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "0"))
-BOUNTY_CHANNEL_ID = int(os.environ.get("BOUNTY_CHANNEL_ID", "0"))
 PORT = int(os.environ.get("PORT", "8080"))
 
 # 12 hex chars = 16^12 ≈ 281 trillion combinations; collision is impossible at any realistic scale.
@@ -64,6 +63,21 @@ def _find_by_short_id(reports: list[dict], short: str) -> dict | None:
     return None
 
 
+async def _get_guild_config(guild_id: int) -> dict:
+    """Fetch per-guild channel config from the backend. Returns nulls if not configured."""
+    async with ClientSession() as session:
+        try:
+            async with session.get(
+                f"{BACKEND_URL}/api/guilds/{guild_id}/config",
+                timeout=ClientTimeout(total=5),
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        except Exception:
+            pass
+    return {"alert_channel_id": None, "bounty_channel_id": None}
+
+
 # ── Autocomplete ──────────────────────────────────────────────────────────────
 
 async def system_autocomplete(interaction: discord.Interaction, current: str):
@@ -76,6 +90,61 @@ async def threat_autocomplete(interaction: discord.Interaction, current: str):
 
 async def type_autocomplete(interaction: discord.Interaction, current: str):
     return [app_commands.Choice(name=t.title(), value=t) for t in PIRATE_TYPES if current.lower() in t]
+
+
+# ── /setup ────────────────────────────────────────────────────────────────────
+
+@tree.command(name="setup", description="Configure PirateSpotters for this server (admin only)")
+@app_commands.describe(
+    alerts="Channel where pirate alert embeds are posted",
+    bounties="Channel for bounty board posts and claim/clear announcements",
+)
+@app_commands.default_permissions(manage_guild=True)
+async def setup_command(
+    interaction: discord.Interaction,
+    alerts: discord.TextChannel | None = None,
+    bounties: discord.TextChannel | None = None,
+):
+    await interaction.response.defer(thinking=True, ephemeral=True)
+
+    if alerts is None and bounties is None:
+        cfg = await _get_guild_config(interaction.guild_id)
+        alert_ch = f"<#{cfg['alert_channel_id']}>" if cfg.get("alert_channel_id") else "_not set_"
+        bounty_ch = f"<#{cfg['bounty_channel_id']}>" if cfg.get("bounty_channel_id") else "_not set_"
+        await interaction.followup.send(
+            f"**PirateSpotters config for this server:**\n"
+            f"📡 Alerts channel: {alert_ch}\n"
+            f"💰 Bounty channel: {bounty_ch}\n\n"
+            f"Use `/setup alerts:#channel` or `/setup bounties:#channel` to configure.",
+            ephemeral=True,
+        )
+        return
+
+    payload = {}
+    if alerts:
+        payload["alert_channel_id"] = alerts.id
+    if bounties:
+        payload["bounty_channel_id"] = bounties.id
+
+    async with ClientSession() as session:
+        try:
+            async with session.put(
+                f"{BACKEND_URL}/api/guilds/{interaction.guild_id}/config",
+                json=payload,
+                timeout=ClientTimeout(total=10),
+            ) as resp:
+                if resp.status == 200:
+                    lines = ["✅ **PirateSpotters configured:**"]
+                    if alerts:
+                        lines.append(f"📡 Alerts → {alerts.mention}")
+                    if bounties:
+                        lines.append(f"💰 Bounties → {bounties.mention}")
+                    await interaction.followup.send("\n".join(lines), ephemeral=True)
+                else:
+                    body = await resp.text()
+                    await interaction.followup.send(f"Backend error {resp.status}: {body[:200]}", ephemeral=True)
+        except ClientError as exc:
+            await interaction.followup.send(f"Could not reach PirateSpotters: {exc}", ephemeral=True)
 
 
 # ── /report ───────────────────────────────────────────────────────────────────
@@ -150,11 +219,14 @@ async def report_command(
                         f"Report filed! `ID: {sid}` · <https://piratespotters.space>",
                         ephemeral=True,
                     )
-                    target = interaction.guild.get_channel(CHANNEL_ID) if CHANNEL_ID else interaction.channel
+                    cfg = await _get_guild_config(interaction.guild_id)
+                    alert_ch_id = cfg.get("alert_channel_id")
+                    bounty_ch_id = cfg.get("bounty_channel_id")
+                    target = interaction.guild.get_channel(alert_ch_id) if alert_ch_id else interaction.channel
                     if target:
                         await target.send(embed=embed)
-                    if bounty > 0 and BOUNTY_CHANNEL_ID and interaction.guild:
-                        bounty_ch = interaction.guild.get_channel(BOUNTY_CHANNEL_ID)
+                    if bounty > 0 and bounty_ch_id:
+                        bounty_ch = interaction.guild.get_channel(bounty_ch_id)
                         if bounty_ch:
                             await bounty_ch.send(embed=_build_bounty_embed(report))
                 else:
@@ -334,8 +406,10 @@ async def _bounty_action(interaction: discord.Interaction, short: str, action: s
                     else:
                         msg = f"🏆 Bounty cleared! Nice work, {hunter}. Threat at **{report['location']}** is eliminated."
                     await interaction.followup.send(msg, ephemeral=True)
-                    if BOUNTY_CHANNEL_ID and interaction.guild:
-                        ch = interaction.guild.get_channel(BOUNTY_CHANNEL_ID)
+                    cfg = await _get_guild_config(interaction.guild_id)
+                    bounty_ch_id = cfg.get("bounty_channel_id")
+                    if bounty_ch_id and interaction.guild:
+                        ch = interaction.guild.get_channel(bounty_ch_id)
                         if ch:
                             if action == "claim":
                                 await ch.send(

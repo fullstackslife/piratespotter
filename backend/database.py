@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text, Boolean, text
+from sqlalchemy import create_engine, Column, String, Integer, BigInteger, DateTime, Text, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime, timezone
 
@@ -73,6 +73,22 @@ class Report(Base):
             "bounty_claimed_at": self.bounty_claimed_at.isoformat() if self.bounty_claimed_at else None,
             "bounty_cleared": bool(self.bounty_cleared),
             "bounty_cleared_at": self.bounty_cleared_at.isoformat() if self.bounty_cleared_at else None,
+        }
+
+
+class GuildConfig(Base):
+    __tablename__ = "guild_configs"
+
+    guild_id = Column(String, primary_key=True)
+    alert_channel_id = Column(BigInteger, nullable=True)
+    bounty_channel_id = Column(BigInteger, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            "guild_id": self.guild_id,
+            "alert_channel_id": self.alert_channel_id,
+            "bounty_channel_id": self.bounty_channel_id,
         }
 
 

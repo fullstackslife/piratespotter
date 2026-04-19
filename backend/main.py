@@ -8,7 +8,7 @@ import random
 import re
 import uuid
 
-from database import SessionLocal, Report, init_db
+from database import SessionLocal, Report, GuildConfig, init_db
 
 # Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js (Terra = map-only, not submittable)
 VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
@@ -89,6 +89,11 @@ class ReportCreate(BaseModel):
 
 class VoteRequest(BaseModel):
     vote: str  # "up" or "down"
+
+
+class GuildConfigUpdate(BaseModel):
+    alert_channel_id: Optional[int] = None
+    bounty_channel_id: Optional[int] = None
 
 
 class BountyActionBody(BaseModel):
@@ -469,6 +474,34 @@ def bounty_action(report_id: str, body: BountyActionBody):
 
     db.commit()
     result = report.to_dict()
+    db.close()
+    return result
+
+
+@app.get("/api/guilds/{guild_id}/config")
+def get_guild_config(guild_id: str):
+    db = SessionLocal()
+    cfg = db.query(GuildConfig).filter(GuildConfig.guild_id == guild_id).first()
+    db.close()
+    if not cfg:
+        return {"guild_id": guild_id, "alert_channel_id": None, "bounty_channel_id": None}
+    return cfg.to_dict()
+
+
+@app.put("/api/guilds/{guild_id}/config")
+def put_guild_config(guild_id: str, body: GuildConfigUpdate):
+    db = SessionLocal()
+    cfg = db.query(GuildConfig).filter(GuildConfig.guild_id == guild_id).first()
+    if not cfg:
+        cfg = GuildConfig(guild_id=guild_id)
+        db.add(cfg)
+    if body.alert_channel_id is not None:
+        cfg.alert_channel_id = body.alert_channel_id
+    if body.bounty_channel_id is not None:
+        cfg.bounty_channel_id = body.bounty_channel_id
+    cfg.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    result = cfg.to_dict()
     db.close()
     return result
 
