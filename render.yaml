@@ -30,3 +30,24 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # ── Discord Bot ────────────────────────────────────────────────
+  - type: worker
+    name: piratespotter-bot
+    branch: main
+    autoDeployTrigger: commit
+    runtime: python
+    rootDir: discord-bot
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CHANNEL_ID
+        sync: false
+      - key: BACKEND_URL
+        fromService:
+          name: piratespotter-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL

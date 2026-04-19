@@ -7,11 +7,13 @@ import Sidebar from './components/Sidebar'
 export default function App() {
   const [tab, setTab] = useState('feed')
   const [showModal, setShowModal] = useState(false)
-  const [refresh, setRefresh] = useState(0)
+  const [latestReport, setLatestReport] = useState(null)
+  const [sidebarKey, setSidebarKey] = useState(0)
 
-  function onReported() {
+  function onReported(report) {
     setShowModal(false)
-    setRefresh(r => r + 1)
+    setLatestReport(report)
+    setSidebarKey(k => k + 1)
   }
 
   return (
@@ -71,7 +73,6 @@ export default function App() {
           ))}
         </nav>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Live indicator */}
@@ -99,45 +100,34 @@ export default function App() {
         </button>
       </header>
 
-      {/* ── Body (responsive: stack on narrow / phone) ── */}
+      {/* ── Body ── */}
       <div className="app-body" style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         {tab === 'feed' && (
           <>
-            <main
-              className="app-main"
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: 'clamp(14px, 2vw, 28px) clamp(16px, 2.5vw, 36px)',
-                minWidth: 0,
-              }}
-            >
-              <Feed key={refresh} />
+            <main className="app-main" style={{
+              flex: 1, overflowY: 'auto',
+              padding: 'clamp(14px, 2vw, 28px) clamp(16px, 2.5vw, 36px)',
+              minWidth: 0,
+            }}>
+              <Feed optimisticReport={latestReport} />
             </main>
-            <aside
-              className="app-sidebar"
-              style={{
-                width: 'clamp(260px, 22vw, 380px)',
-                flexShrink: 0,
-                borderLeft: '1px solid #1e2730',
-                overflowY: 'auto',
-                background: '#0a0d12',
-              }}
-            >
-              <Sidebar key={refresh} />
+            <aside className="app-sidebar" style={{
+              width: 'clamp(260px, 22vw, 380px)',
+              flexShrink: 0,
+              borderLeft: '1px solid #1e2730',
+              overflowY: 'auto',
+              background: '#0a0d12',
+            }}>
+              <Sidebar key={sidebarKey} />
             </aside>
           </>
         )}
         {tab === 'map' && (
-          <main
-            className="app-main"
-            style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: 'clamp(12px, 1.5vw, 24px)',
-              minWidth: 0,
-            }}
-          >
+          <main className="app-main" style={{
+            flex: 1, overflow: 'auto',
+            padding: 'clamp(12px, 1.5vw, 24px)',
+            minWidth: 0,
+          }}>
             <MapView />
           </main>
         )}

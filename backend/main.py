@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import random
 import re
@@ -112,44 +112,261 @@ def startup():
     seed_data()
 
 
+def _ago(hours: float) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(hours=hours)
+
+
 def seed_data():
     db = SessionLocal()
     if db.query(Report).count() > 0:
         db.close()
         return
+
+    # (location, system, pirate_type, threat_level, ship, notes, reporter, hours_ago, attackers_json, bounty_auec)
     seed = [
-        ("Port Olisar Approach", "Stanton", "ambush", "high", "Cutlass Black", "Two ships waiting at QT drop-out point"),
-        ("Yela Belt", "Stanton", "patrol", "medium", "Buccaneer", "Solo pirate scanning miners"),
-        ("Daymar Surface", "Stanton", "griefer", "low", None, "Ramming ships on landing pads"),
-        ("Pyro jump side", "Pyro", "blockade", "high", "Hammerhead", "Org blockade, 4+ ships"),
-        ("Covalex Hub", "Stanton", "ambush", "medium", "Freelancer MIS", None),
-        ("Stanton Gateway", "Pyro", "org", "high", None, "Heavy presence near Stanton jump side"),
-        ("Crusader Orbit", "Stanton", "ambush", "medium", "Cutlass Black", "Waiting near comm arrays"),
-        ("Ruin Station", "Pyro", "ambush", "medium", "Gladius", "Interdicting traders near Bloom"),
-        ("Fuego belt", "Pyro", "patrol", "low", "Freelancer", "Scanning miners"),
-        ("Nyx Gateway side", "Nyx", "patrol", "medium", "Cutlass", "Intel near Pyro–Nyx jump"),
+        # ── Stanton ──────────────────────────────────────────────
+        ("Grim HEX", "Stanton", "blockade", "high", "Hammerhead",
+         "Org blockade outside Grim HEX docking collar. Four ships holding the approach. Do not QT in without escort.",
+         "XenonPilot", 0.4,
+         json.dumps([{"handle": "Kr4ken_CMD", "ship": "Hammerhead"}, {"handle": "Vex_Null", "ship": "Cutlass Black"}, {"handle": "ShadowGrip", "ship": "Gladius"}]),
+         500_000),
+
+        ("Aaron Halo — inner ring", "Stanton", "ambush", "high", "Caterpillar",
+         "Caterpillar using asteroid shadow as cover. Two Gladii on intercept. They targeted a Prospector and looted its cargo.",
+         "MinerMagda", 1.1,
+         json.dumps([{"handle": "DeepRock_Cartel", "ship": "Caterpillar"}, {"handle": "NullVec", "ship": "Gladius"}]),
+         0),
+
+        ("Yela — asteroid belt", "Stanton", "patrol", "medium", "Buccaneer",
+         "Solo Buccaneer pinging miners on scanner. Appeared non-aggressive but followed for 8 km.",
+         "FreelancerPilot", 1.8, None, 0),
+
+        ("Daymar surface — near Shubin SCD-1", "Stanton", "griefer", "low", None,
+         "Hovering Pisces ramming landed ships. Left when third party arrived.",
+         "SandDrifter", 2.5, None, 0),
+
+        ("CRU-L1 Ambitious Dream Station", "Stanton", "ambush", "medium", "Cutlass Black",
+         "Two Cutlass Black units parked in the blind spot behind the station's docking arm. Jumping to QT immediately after refuel is advised.",
+         "TruckerJay", 3.0,
+         json.dumps([{"handle": "HullStripper", "ship": "Cutlass Black"}, {"handle": "Lorn_Wraith", "ship": "Cutlass Black"}]),
+         0),
+
+        ("Cellin — Security Post Kareah approach", "Stanton", "patrol", "medium", "Sabre",
+         "Stealth Sabre loitering near Kareah. May be scouting UEE patrols.",
+         "BountyHunterXL", 3.7, None, 0),
+
+        ("Crusader orbit — comm array ST4-23", "Stanton", "ambush", "high", "Eclipse",
+         "Torpedo bomber waiting at comm array. Took out a Constellation. No warning given.",
+         "OrionTrader", 4.2,
+         json.dumps([{"handle": "TorpedoKing_SC", "ship": "Eclipse"}]),
+         300_000),
+
+        ("MIC-L3 Endless Odyssey Station", "Stanton", "griefer", "medium", "Hornet F7C-M",
+         "Repeated ramming on the landing pad. Claims to be testing ship physics.",
+         "IceWorldFreighter", 5.0, None, 0),
+
+        ("New Babbage — spaceport approach", "Stanton", "ambush", "low", "Arrow",
+         "Fast Arrow intercepting ships in the traffic lane. Stole cargo from a Titan.",
+         "MBGpilot", 5.8, None, 0),
+
+        ("Lorville — Teasa Spaceport inbound lane", "Stanton", "griefer", "low", None,
+         "Two players in Nox vehicles blocking the landing pad bay doors. Security was called but was slow to respond.",
+         "HurstonWorker", 6.5, None, 0),
+
+        ("ARC-L1 Wide Forest Station", "Stanton", "ambush", "medium", "Freelancer MIS",
+         "Missile boat targeting transports QTing into L1. Fired two Size-3 missiles at a C2 Hercules.",
+         "CargoRun_77", 7.2,
+         json.dumps([{"handle": "MissileMonk", "ship": "Freelancer MIS"}]),
+         150_000),
+
+        ("Daymar — Bountiful Vista mine", "Stanton", "patrol", "low", "Pisces",
+         "Pisces parked outside with two occupants. Asked for 'transit fee'. Left when we grouped up.",
+         "ProspectorUnion", 8.0, None, 0),
+
+        ("Yela orbit", "Stanton", "org", "high", "Reclaimer",
+         "Org fleet including a Reclaimer and three escorts holding Yela orbit. Pirating salvage ships.",
+         "SalvageKing", 9.1,
+         json.dumps([{"handle": "ScrapLords_CO", "ship": "Reclaimer"}, {"handle": "ScrapLords_01", "ship": "Gladius"}, {"handle": "ScrapLords_02", "ship": "Gladius"}]),
+         0),
+
+        ("HUR-L5 High Course Station", "Stanton", "ambush", "medium", "Corsair",
+         "Corsair loitering outside HUR-L5 docking. Targeted a Hull-C on approach.",
+         "LongHaulLarry", 10.5, None, 0),
+
+        ("Cellin — Gallete Family Farms", "Stanton", "ambush", "low", "Buccaneer",
+         "Jumped out of quantum on me near the outpost. Seemed disorganized — managed to escape.",
+         "ScoutRunner", 12.0, None, 0),
+
+        ("Area 18 — ArcCorp approach", "Stanton", "blockade", "high", "Hammerhead",
+         "Hammerhead interdicting traffic on the approach lane. At least 6 smaller escorts. Org colors: red and black.",
+         "CorpFreighter", 14.3,
+         json.dumps([{"handle": "RedVoid_Leader", "ship": "Hammerhead"}, {"handle": "RedVoid_Wing1", "ship": "Cutlass Black"}, {"handle": "RedVoid_Wing2", "ship": "Arrow"}]),
+         250_000),
+
+        ("MIC-L1 Shallow Frontier Station", "Stanton", "patrol", "low", "Vanguard Warden",
+         "Lone Vanguard Warden following haulers from MIC-L1. Backed off when I hailed them.",
+         "IceMoonHauler", 16.0, None, 0),
+
+        ("Aberdeen — Klescher Rehabilitation Facility airspace", "Stanton", "ambush", "medium", "Gladius",
+         "Picking off players emerging from Klescher. Easy prey — they respawn with nothing.",
+         "ExConPilot", 18.5,
+         json.dumps([{"handle": "KlescherFarmer", "ship": "Gladius"}]),
+         100_000),
+
+        ("Orison platform approach", "Stanton", "griefer", "low", None,
+         "Player blocking the platform elevator bay with a Dragonfly. Security present but ineffective.",
+         None, 20.0, None, 0),
+
+        ("Crusader L4 — Shallow Fields Station", "Stanton", "ambush", "medium", "Mantis",
+         "Quantum interdictor active near CRU-L4. Pulled us out of QT and two accomplices moved in.",
+         "GasGiant_Trucker", 22.0,
+         json.dumps([{"handle": "QT_Catcher", "ship": "Mantis"}, {"handle": "QT_Wolf1", "ship": "Cutlass Black"}]),
+         0),
+
+        # ── Pyro ──────────────────────────────────────────────────
+        ("Stanton Gateway — Pyro side", "Pyro", "blockade", "high", "Hammerhead",
+         "Large org blockade on the Pyro side of the jump gate. Ships being scanned and looted. UEE does not respond here.",
+         "JumpGateRunner", 1.5,
+         json.dumps([{"handle": "PyroWarlord", "ship": "Hammerhead"}, {"handle": "GateGuard_01", "ship": "Gladius"}, {"handle": "GateGuard_02", "ship": "Cutlass Black"}, {"handle": "GateGuard_03", "ship": "Arrow"}]),
+         0),
+
+        ("Ruin Station — docking approach", "Pyro", "ambush", "high", "Sabre",
+         "Two Sabres on active scan near Ruin Station. They opened fire without hailing. I lost my Freelancer.",
+         "BloomTrader", 2.2,
+         json.dumps([{"handle": "RuinRaider", "ship": "Sabre"}, {"handle": "TwinFang", "ship": "Sabre"}]),
+         200_000),
+
+        ("Bloom surface — outlaw settlement", "Pyro", "org", "high", None,
+         "Coordinated ambush from multiple ground positions. They have anti-air. Do not land at the southern settlement.",
+         "ExpeditionPilot", 3.3, None, 0),
+
+        ("Checkmate Station", "Pyro", "patrol", "medium", "Cutlass Black",
+         "Rough & Ready types shaking down incoming traffic. 'Docking fee' demanded. One Cutlass circling.",
+         "PyroMerchant", 4.8, None, 0),
+
+        ("Pyro I — solar flare zone", "Pyro", "ambush", "high", "Gladius",
+         "Pirates using the radiation storms as sensor cover. Emerged at 800m. No warning. Lost shields fast.",
+         "RadZone_Pilot", 6.0,
+         json.dumps([{"handle": "FlareHunter", "ship": "Gladius"}]),
+         0),
+
+        ("Monox — abandoned mine complex", "Pyro", "ambush", "medium", "Freelancer MIS",
+         "Missile boat hiding inside the mine shaft entrance. Launched when we approached.",
+         "MonoxMiner", 7.5, None, 0),
+
+        ("Nyx Gateway — Pyro side", "Pyro", "patrol", "medium", "Constellation Andromeda",
+         "Connie with two Merlin parasite ships loitering near the jump. Likely interdiction setup.",
+         "NyxBound_Trader", 9.0,
+         json.dumps([{"handle": "JumpWatch_Alpha", "ship": "Constellation Andromeda"}]),
+         0),
+
+        ("Akiro Cluster — dense belt", "Pyro", "org", "high", "Caterpillar",
+         "Full org operation in the Akiro Cluster. Caterpillar plus 5 escorts. They're stripping every mining ship.",
+         "BeltMiner_Pyro", 11.0,
+         json.dumps([{"handle": "AkiroKing", "ship": "Caterpillar"}, {"handle": "AkiroWing1", "ship": "Gladius"}, {"handle": "AkiroWing2", "ship": "Gladius"}, {"handle": "AkiroWing3", "ship": "Buccaneer"}]),
+         0),
+
+        ("Pyro V — hydrogen skimming lane", "Pyro", "patrol", "low", "Buccaneer",
+         "Solo pirate scanning refuelling ships. Non-aggressive so far but circling tightly.",
+         "FuelSkimmer", 13.5, None, 0),
+
+        ("Terminus — near Ruin Station", "Pyro", "ambush", "medium", "Vanguard Warden",
+         "Long-range ambush from Terminus ice shelf. Vanguard beams are effective at range.",
+         "IceTerminus_Pilot", 15.0,
+         json.dumps([{"handle": "TerminusGhost", "ship": "Vanguard Warden"}]),
+         75_000),
+
+        ("Orbituary — marketplace exterior", "Pyro", "griefer", "low", None,
+         "Repeated ramming of docked ships at Orbituary. No weapons fire — just kinetic griefing.",
+         "FreeMarketPilot", 17.5, None, 0),
+
+        ("Bloom — brine sea approach", "Pyro", "ambush", "high", "Redeemer",
+         "Gunship hovering low at sea level — ambush on scout craft landing near the caves.",
+         "CaveScout_Pyro", 21.0,
+         json.dumps([{"handle": "BrineHunter", "ship": "Redeemer"}, {"handle": "BloomWing", "ship": "Gladius"}]),
+         400_000),
+
+        # ── Nyx ───────────────────────────────────────────────────
+        ("Levski — landing bay 7", "Nyx", "griefer", "low", None,
+         "Blocking the elevator with a Dragonfly. Levski security is very slow to respond here.",
+         "LevskiRegular", 2.0, None, 0),
+
+        ("Glaciem Ring — Delamar approach", "Nyx", "ambush", "high", "Eclipse",
+         "Torpedo bomber waiting in the ring debris. Took out a fully loaded Hull-B. No chance to evade.",
+         "DelamarFreighter", 3.8,
+         json.dumps([{"handle": "GlacTorpedo", "ship": "Eclipse"}]),
+         500_000),
+
+        ("Keeger Belt — outer run", "Nyx", "org", "high", "Corsair",
+         "Outlaw stronghold active in the Keeger Belt. Corsair plus multiple Cutlasses. They have scouts in the ring.",
+         "OuterBeltHauler", 5.5,
+         json.dumps([{"handle": "KeegerBoss", "ship": "Corsair"}, {"handle": "KeegerWing1", "ship": "Cutlass Black"}, {"handle": "KeegerWing2", "ship": "Cutlass Black"}]),
+         0),
+
+        ("Nyx Gateway — inbound from Pyro", "Nyx", "blockade", "medium", "Hammerhead",
+         "Heavy ship holding the inbound lane from Pyro. Demanding tolls. People's Alliance territory dispute.",
+         "PeoplesPilot", 8.0, None, 0),
+
+        ("Delamar — Levski airspace", "Nyx", "patrol", "low", "Avenger Stalker",
+         "Avenger circling Levski exterior. Scanning ships. May be bounty hunter operating in the area.",
+         "LevskiAirTraffic", 11.0, None, 0),
+
+        ("Glaciem Ring — Moraine settlement", "Nyx", "ambush", "medium", "Buccaneer",
+         "Fast intercept from hidden Buccaneer near the smuggler settlement. Targeted light freighters.",
+         "SmugglersRun", 19.0,
+         json.dumps([{"handle": "MoraineRaider", "ship": "Buccaneer"}]),
+         0),
+
+        ("Nyx I — depleted mining zone", "Nyx", "patrol", "medium", "Freelancer",
+         "Armed Freelancer following mining ships out of the Gold Horizon legacy mines. Waiting for a hull breach.",
+         "GoldHorizonMiner", 24.0, None, 0),
+
+        ("Keeger Belt — People's service station", "Nyx", "blockade", "high", "Caterpillar",
+         "Caterpillar and two escorts seized control of the People's Alliance fuel depot. No fuel unless you pay extra.",
+         "FuelRunNyx", 36.0,
+         json.dumps([{"handle": "KeegerCartel_CO", "ship": "Caterpillar"}, {"handle": "KeegerCartel_E1", "ship": "Gladius"}]),
+         250_000),
     ]
-    sample_attackers = json.dumps(
-        [{"handle": "Skav_01", "ship": "Cutlass Black"}, {"handle": "VoidRider", "ship": "Gladius"}]
-    )
-    for i, (loc, sys, ptype, threat, ship, notes) in enumerate(seed):
+
+    for (loc, sys, ptype, threat, ship, notes, reporter, hours_ago, attackers_json, bounty_auec) in seed:
+        created = _ago(hours_ago + random.uniform(-0.15, 0.15))
+        bounty_msg = "Honor system — screenshot proof required. Contact reporter in-game." if bounty_auec > 0 else None
         db.add(Report(
             id=str(uuid.uuid4()),
+            created_at=created,
             location=loc,
             system=sys,
             pirate_type=ptype,
             threat_level=threat,
             ship=ship,
             notes=notes,
-            upvotes=random.randint(0, 12),
-            downvotes=random.randint(0, 3),
-            reporter_name="DemoPilot" if i == 0 else None,
-            attackers_json=sample_attackers if i == 0 else None,
-            bounty_auec=250_000 if i == 0 else 0,
-            bounty_message="Honor payout in Stanton — screenshot proof in Discord." if i == 0 else None,
+            upvotes=random.randint(0, 18),
+            downvotes=random.randint(0, 2),
+            reporter_name=reporter,
+            attackers_json=attackers_json,
+            bounty_auec=bounty_auec,
+            bounty_message=bounty_msg,
         ))
     db.commit()
     db.close()
+
+
+@app.post("/api/admin/reseed")
+def admin_reseed(secret: str = Query(...)):
+    """Wipe seed data and re-insert. Requires ADMIN_SECRET env var."""
+    import os
+    expected = os.getenv("ADMIN_SECRET", "")
+    if not expected or secret != expected:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    db = SessionLocal()
+    db.query(Report).delete()
+    db.commit()
+    db.close()
+    seed_data()
+    db2 = SessionLocal()
+    count = db2.query(Report).count()
+    db2.close()
+    return {"reseeded": count}
 
 
 @app.get("/api/reports")
