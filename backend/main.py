@@ -190,10 +190,20 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     
     content_lower = content.lower()
     
-    # Basic inappropriate word filter (can be expanded as needed)
+    # Basic inappropriate word filter (expanded list)
     inappropriate_terms = {
-        # This list can be expanded with actual inappropriate terms
-        'example_bad_word', 'another_bad_term'
+        # Profanity and slurs
+        'fuck', 'fucking', 'fucker', 'shit', 'shitty', 'damn', 'bitch', 'bastard', 'asshole', 'cunt', 'dick', 'pussy',
+        'nigger', 'nigga', 'chink', 'gook', 'kike', 'spic', 'wetback', 'faggot', 'tranny', 'retard', 'cuck',
+        # Spam patterns
+        'troll', 'trolling', 'spam', 'test', 'testing', 'fake', 'joke', 'lol', 'lmao', 'rofl',
+        # Excessive repetition
+        'aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd',
+        'eeeeeeeeeeeeeeee', 'ffffffffffffffff', 'gggggggggggggggg', 'hhhhhhhhhhhhhhhh',
+        # Common spam phrases
+        'buy now', 'click here', 'free money', 'make money fast', 'work from home',
+        # Game-specific inappropriate content
+        'grief', 'griefer', 'griefing', 'troll org', 'trollorg',
     }
     
     for term in inappropriate_terms:
@@ -203,6 +213,16 @@ def is_appropriate_content(content: Optional[str]) -> bool:
     # Check for excessive special characters / spam patterns
     special_char_count = sum(1 for c in content if not c.isalnum() and c not in ' .,!?-')
     if special_char_count > len(content) * 0.3:  # More than 30% special chars
+        return False
+    
+    # Check for excessive repetition of the same character
+    for char in set(content_lower):
+        if content_lower.count(char) > len(content) * 0.4:  # More than 40% same character
+            return False
+    
+    # Check for very short content with no real information
+    words = content.split()
+    if len(words) < 3 and len(content) < 20:
         return False
     
     return True
@@ -476,7 +496,15 @@ def get_reports(
         q = q.filter(Report.system == system)
     if since:
         q = q.filter(Report.created_at >= datetime.fromisoformat(since.replace("Z", "")))
-    results = q.limit(limit).all()
+    
+    # Only return reports that pass content moderation
+    results = []
+    for report in q.limit(limit * 2).all():  # Get more to account for filtered ones
+        if is_appropriate_content(report.notes) and is_appropriate_content(report.bounty_message):
+            results.append(report)
+        if len(results) >= limit:
+            break
+    
     db.close()
     return [r.to_dict() for r in results]
 
@@ -493,7 +521,8 @@ def _attackers_payload(body: ReportCreate) -> tuple[Optional[str], Optional[str]
 
 @app.post("/api/reports", status_code=201)
 @limiter.limit("10/minute")
-def create_report(body: ReportCreate, request: Request, user_identifier: str = Depends(get_user_identifier)):
+def create_report(body: ReportCreate, request: Request):
+    # Allow anonymous report creation but apply content moderation
     if body.system not in VALID_SYSTEMS:
         raise HTTPException(
             status_code=400,
@@ -501,6 +530,11 @@ def create_report(body: ReportCreate, request: Request, user_identifier: str = D
         )
     if len(body.attackers) > 12:
         raise HTTPException(status_code=400, detail="At most 12 attackers per report.")
+
+    # Content moderation check
+    if not is_appropriate_content(body.notes) or not is_appropriate_content(body.bounty_message):
+        raise HTTPException(status_code=400, detail="Report contains inappropriate content and cannot be submitted.")
+
     attackers_json, legacy_ship = _attackers_payload(body)
     db = SessionLocal()
     report = Report(
@@ -604,7 +638,6 @@ def vote_report(
     request: Request,
     report_id: str,
     body: VoteRequest,
-    user_identifier: str = Depends(get_user_identifier)
 ):
     db = SessionLocal()
     
@@ -623,6 +656,10 @@ def vote_report(
     if not is_appropriate_content(report.notes) or not is_appropriate_content(report.bounty_message):
         db.close()
         raise HTTPException(status_code=403, detail="Report contains inappropriate content and cannot be voted on")
+    
+    # Use IP-based user identifier for anonymous voting
+    client_ip = request.client.host
+    user_identifier = f"ip:{hashlib.sha256(client_ip.encode()).hexdigest()[:16]}"
     
     # Check if user already voted on this report
     existing_vote = db.query(VoteTracking).filter(
