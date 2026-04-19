@@ -29,6 +29,7 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         value: "*"
+        value: "*"
 
   # ── Frontend static site ───────────────────────────────────────
   - type: web

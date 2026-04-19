@@ -163,5 +163,18 @@ def migrate_db():
 
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
-    migrate_db()
+    print("🔧 Creating database tables...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tables created successfully")
+    except Exception as e:
+        print(f"❌ Failed to create tables: {e}")
+        raise
+    
+    print("🔄 Running database migrations...")
+    try:
+        migrate_db()
+        print("✅ Migrations completed successfully")
+    except Exception as e:
+        print(f"❌ Migration failed: {e}")
+        # Don't raise - allow app to continue even if migration fails

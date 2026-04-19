@@ -49,7 +49,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
+    print("🚀 Starting up piratespotter backend...")
     try:
+        print("📊 Initializing database...")
         init_db()
         print("✅ Database initialized successfully")
     except Exception as e:
@@ -57,11 +59,14 @@ def startup():
         raise
     
     try:
+        print("🌱 Loading seed data...")
         seed_data()
         print("✅ Seed data loaded successfully")
     except Exception as e:
         print(f"⚠️  Seed data loading failed (continuing): {e}")
         # Don't raise - allow app to start even if seed data fails
+    
+    print("🎉 Backend startup complete!")
 
 
 # Printable in-game style names (no control chars / newlines)
