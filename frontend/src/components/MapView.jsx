@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch'
 import { apiUrl } from '../api'
 import { MAP_SYSTEMS, MAP_JUMPS } from '../scSystems'
+import { STANTON_BODIES, PYRO_BODIES, STANTON_SPACE, PYRO_SPACE, POI_KIND } from '../scLocations'
+import InnerOrbitChart from './InnerOrbitChart'
+import LocationTreePanel from './LocationTreePanel'
 
 // ── Map canvas dimensions (schematic; topology from RSI Pyro jump table) ───────
 const W = 1200
@@ -14,29 +17,6 @@ const F = {
 }
 
 const FACTION_KEYS_IN_MAP = [...new Set(Object.values(MAP_SYSTEMS).map(s => s.f))]
-
-// ── Stanton bodies: names from in-game / Galactapedia (no fan geography) ───────
-const STANTON_PLANETS = [
-  { name: 'Hurston', orbit: 0.2, angle: 25, color: '#8B5E3C', r: 2.5,
-    moons: ['Aberdeen', 'Arial', 'Ita', 'Magda'], city: 'Lorville', subtitle: 'Natural satellites: Aberdeen, Arial, Ita, Magda' },
-  { name: 'Crusader', orbit: 0.38, angle: 145, color: '#4a7fa5', r: 3.5,
-    moons: ['Daymar', 'Yela', 'Cellin'], city: 'Orison', subtitle: 'Natural satellites: Daymar, Yela, Cellin' },
-  { name: 'ArcCorp', orbit: 0.58, angle: 255, color: '#c08050', r: 2.8,
-    moons: ['Lyria', 'Wala'], city: 'Area 18', subtitle: 'Natural satellites: Lyria, Wala' },
-  { name: 'MicroTech', orbit: 0.78, angle: 345, color: '#7ab8d4', r: 2.4,
-    moons: ['Calliope', 'Clio', 'Euterpe'], city: 'New Babbage', subtitle: 'Natural satellites: Calliope, Clio, Euterpe' },
-]
-
-// ── Pyro bodies: order and names per Galactapedia / Starmap (Pyro system wiki) ─
-const PYRO_PLANETS = [
-  { name: 'Pyro I', orbit: 0.12, angle: 35, color: '#c04010', r: 1.9, moons: [], subtitle: 'Inner terrestrial (Galactapedia)' },
-  { name: 'Monox', orbit: 0.24, angle: 115, color: '#a03010', r: 2.3, moons: [], subtitle: 'Pyro II' },
-  { name: 'Bloom', orbit: 0.36, angle: 195, color: '#cc6820', r: 2.4, moons: [], subtitle: 'Pyro III' },
-  { name: 'Pyro IV', orbit: 0.48, angle: 275, color: '#884030', r: 2.0, moons: [], subtitle: 'Orbits Pyro V (Starmap)' },
-  { name: 'Pyro V', orbit: 0.62, angle: 355, color: '#5a9020', r: 3.1,
-    moons: ['Ignis', 'Vatra', 'Adir', 'Fairo', 'Fuego', 'Vuur'], subtitle: 'Gas giant — moons per Galactapedia / Starmap' },
-  { name: 'Terminus', orbit: 0.78, angle: 70, color: '#708090', r: 2.2, moons: [], subtitle: 'Pyro VI · Ruin Station orbit' },
-]
 
 // ── Pre-generate starfield ─────────────────────────────────────────────────────
 const STARS = Array.from({ length: 300 }, (_, i) => ({
@@ -73,68 +53,6 @@ function ZoomControls({ onReset }) {
         >{label}</button>
       ))}
     </div>
-  )
-}
-
-// ── Inner system mini-map ──────────────────────────────────────────────────────
-function InnerSystem({ planets, starColor, starR = 4 }) {
-  return (
-    <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
-      <defs>
-        <radialGradient id="ibg" cx="50%" cy="50%">
-          <stop offset="0%"   stopColor="#0c1825" />
-          <stop offset="100%" stopColor="#020407" />
-        </radialGradient>
-      </defs>
-      <rect width="100" height="100" fill="url(#ibg)" />
-      {Array.from({ length: 60 }, (_, i) => (
-        <circle key={i}
-          cx={(i * 137.5) % 100} cy={(i * 97.3) % 100}
-          r={0.3 + (i % 4) * 0.15} fill="white"
-          opacity={0.1 + (i % 6) * 0.08} />
-      ))}
-      {/* Orbit rings */}
-      {planets.map((p, i) => (
-        <circle key={i} cx="50" cy="50" r={p.orbit * 46}
-          fill="none" stroke="#1e3050" strokeWidth="0.25" opacity="0.65" />
-      ))}
-      {/* Central star */}
-      <circle cx="50" cy="50" r={starR} fill={starColor} opacity="0.95" />
-      <circle cx={50 - starR * 0.35} cy={50 - starR * 0.35}
-        r={starR * 0.4} fill="white" opacity="0.22" />
-      {/* Planets + moons */}
-      {planets.map(p => {
-        const rad = (p.angle * Math.PI) / 180
-        const px = 50 + Math.cos(rad) * p.orbit * 46
-        const py = 50 + Math.sin(rad) * p.orbit * 46
-        return (
-          <g key={p.name}>
-            {(p.moons || []).map((m, mi) => {
-              const mr = ((p.angle + 55 + mi * 85) * Math.PI) / 180
-              const dist = p.r + 2.4 + mi * 1.6
-              return (
-                <g key={m}>
-                  <circle cx={px} cy={py} r={dist}
-                    fill="none" stroke="#1e2d3a" strokeWidth="0.2" opacity="0.45" />
-                  <circle
-                    cx={px + Math.cos(mr) * dist}
-                    cy={py + Math.sin(mr) * dist}
-                    r={0.75} fill="#5a6a7a" opacity="0.85" />
-                </g>
-              )
-            })}
-            <circle cx={px} cy={py} r={p.r} fill={p.color} opacity="0.9" />
-            <circle cx={px - p.r * 0.3} cy={py - p.r * 0.3}
-              r={p.r * 0.35} fill="white" opacity="0.18" />
-            <text x={px} y={py + p.r + 3.8}
-              textAnchor="middle" fontSize="2.9"
-              fill="#7a90a8" fontFamily="monospace">
-              {p.name}
-            </text>
-          </g>
-        )
-      })}
-    </svg>
   )
 }
 
@@ -206,6 +124,17 @@ export default function MapView() {
               <span style={{ color: '#fca5a5' }}>Pirate Activity</span>
             </div>
           </div>
+          <div style={{ borderTop: '1px solid #1e2730', marginTop: 6, paddingTop: 6, maxHeight: 120, overflowY: 'auto' }}>
+            <div style={{ fontSize: 9, color: '#484f58', marginBottom: 4, fontWeight: 700 }}>POI pin colors</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 8px' }}>
+              {Object.entries(POI_KIND).map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 1, background: v.color, flexShrink: 0 }} />
+                  <span style={{ color: '#8b949e' }}>{v.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Hint */}
@@ -213,7 +142,7 @@ export default function MapView() {
           position: 'absolute', bottom: 12, left: 12, zIndex: 10,
           fontSize: 10, color: '#484f58',
         }}>
-          Scroll to zoom (fine steps) · drag to pan · click system for details
+          Scroll / zoom · drag to pan · all four systems — pan up for Terra, right for Nyx
         </div>
         <div style={{
           position: 'absolute', top: 12, right: 12, zIndex: 10,
@@ -224,10 +153,10 @@ export default function MapView() {
 
         <TransformWrapper
           ref={wrapperRef}
-          initialScale={0.72}
-          initialPositionX={-20}
-          initialPositionY={-10}
-          minScale={0.35}
+          initialScale={0.5}
+          initialPositionX={-40}
+          initialPositionY={40}
+          minScale={0.28}
           maxScale={2.75}
           limitToBounds={false}
           smooth
@@ -332,17 +261,17 @@ export default function MapView() {
 
                         {/* System body */}
                         <circle cx={sys.x} cy={sys.y} r={r}
-                          fill={sys.play ? faction.core : '#0d1520'}
-                          stroke={sys.play ? faction.glow : '#1a2535'}
-                          strokeWidth={sys.play ? (isSel ? 2 : 1) : 0.5}
-                          opacity={sys.play ? 0.95 : 0.5}
+                          fill={sys.play ? faction.core : '#243a5a'}
+                          stroke={sys.play ? faction.glow : faction.glow}
+                          strokeWidth={sys.play ? (isSel ? 2 : 1) : (isSel ? 1.8 : 1.1)}
+                          opacity={sys.play ? 0.95 : 0.9}
                           filter={sys.play && showGlow ? 'url(#glow-sm)' : undefined}
                         />
 
                         {/* Highlight spot */}
-                        {sys.play && (
+                        {(sys.play || isSel) && (
                           <circle cx={sys.x - r * 0.28} cy={sys.y - r * 0.28}
-                            r={r * 0.3} fill="white" opacity="0.18" />
+                            r={r * 0.3} fill="white" opacity={sys.play ? 0.18 : 0.12} />
                         )}
 
                         {/* Report count overlay */}
@@ -357,10 +286,10 @@ export default function MapView() {
                         )}
 
                         {/* System name */}
-                        <text x={sys.x} y={sys.y + r + (sys.play ? 14 : 10)}
+                        <text x={sys.x} y={sys.y + r + (sys.play ? 14 : 12)}
                           textAnchor="middle"
-                          fontSize={sys.play ? 11 : 9}
-                          fill={isSel ? 'white' : sys.play ? faction.label : '#2a3a50'}
+                          fontSize={sys.play ? 11 : 10}
+                          fill={isSel ? 'white' : sys.play ? faction.label : '#8bafc8'}
                           fontFamily="monospace"
                           fontWeight={isSel ? 'bold' : 'normal'}
                         >
@@ -395,8 +324,13 @@ export default function MapView() {
 
       {/* ── Detail panel ── */}
       <div className="map-detail" style={{
-        width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        gap: 10, overflowY: 'auto',
+        width: 'min(400px, 38vw)',
+        minWidth: 300,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        overflowY: 'auto',
       }}>
         {!selected && (
           <div style={{
@@ -475,47 +409,26 @@ export default function MapView() {
               </div>
             )}
 
-            {/* Inner system map — Stanton / Pyro */}
+            {/* Orbit schematic + POI pins — Stanton / Pyro */}
             {(selected === 'Stanton' || selected === 'Pyro') && (
               <div style={{
                 background: '#0d1117', border: '1px solid #1e2730',
                 borderRadius: 10, overflow: 'hidden', aspectRatio: '1 / 1',
               }}>
-                <InnerSystem
-                  planets={selected === 'Stanton' ? STANTON_PLANETS : PYRO_PLANETS}
+                <InnerOrbitChart
+                  bodies={selected === 'Stanton' ? STANTON_BODIES : PYRO_BODIES}
                   starColor={selected === 'Stanton' ? '#fdb462' : '#ff5510'}
                   starR={selected === 'Stanton' ? 3.5 : 4.5}
                 />
               </div>
             )}
 
-            {/* Planet list */}
             {(selected === 'Stanton' || selected === 'Pyro') && (
-              <div style={{
-                background: '#0d1117', border: '1px solid #1e2730',
-                borderRadius: 10, overflow: 'hidden',
-              }}>
-                <div style={{ padding: '8px 14px', borderBottom: '1px solid #1e2730', fontSize: 10, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
-                  Major bodies (CIG / Galactapedia naming)
-                </div>
-                {(selected === 'Stanton' ? STANTON_PLANETS : PYRO_PLANETS).map(p => (
-                  <div key={p.name} style={{ padding: '7px 14px', borderBottom: '1px solid #0d1218', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                    <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.color, flexShrink: 0, marginTop: 3 }} />
-                    <div>
-                      <div style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 600 }}>{p.name}</div>
-                      {p.city && (
-                        <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Primary landing: {p.city}</div>
-                      )}
-                      {p.moons?.length > 0 && (
-                        <div style={{ fontSize: 10, color: '#484f58', marginTop: 2 }}>Moons: {p.moons.join(', ')}</div>
-                      )}
-                      {p.subtitle && (
-                        <div style={{ fontSize: 10, color: '#374151', marginTop: 2 }}>{p.subtitle}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <LocationTreePanel
+                title={selected === 'Stanton' ? 'Stanton — moons, cities, stations' : 'Pyro — bodies & stations'}
+                spaceExtras={selected === 'Stanton' ? STANTON_SPACE : PYRO_SPACE}
+                bodies={selected === 'Stanton' ? STANTON_BODIES : PYRO_BODIES}
+              />
             )}
 
             {/* Recent reports */}
