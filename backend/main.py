@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime, timezone, timedelta
 import json
+import os
 import random
 import re
 import uuid
@@ -35,9 +36,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
-import os
 _origins = os.getenv("ALLOWED_ORIGINS", "")
-ALLOWED_ORIGINS = _origins.split(",") if _origins else ["*"]
+ALLOWED_ORIGINS = [origin.strip() for origin in _origins.split(",") if origin.strip()] if _origins else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,6 +45,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup():
+    init_db()
+    seed_data()
 
 
 # Printable in-game style names (no control chars / newlines)
@@ -425,7 +431,6 @@ def seed_data():
 @app.post("/api/admin/reseed")
 def admin_reseed(secret: str = Query(...)):
     """Wipe seed data and re-insert. Requires ADMIN_SECRET env var."""
-    import os
     expected = os.getenv("ADMIN_SECRET", "")
     if not expected or secret != expected:
         raise HTTPException(status_code=403, detail="Forbidden")
