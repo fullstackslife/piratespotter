@@ -49,8 +49,19 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
-    init_db()
-    seed_data()
+    try:
+        init_db()
+        print("✅ Database initialized successfully")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+        raise
+    
+    try:
+        seed_data()
+        print("✅ Seed data loaded successfully")
+    except Exception as e:
+        print(f"⚠️  Seed data loading failed (continuing): {e}")
+        # Don't raise - allow app to start even if seed data fails
 
 
 # Printable in-game style names (no control chars / newlines)

@@ -115,12 +115,23 @@ class GuildConfig(Base):
 
 
 def _column_names(connection, table="reports"):
-    rows = connection.execute(text(f"PRAGMA table_info({table})")).fetchall()
-    return {r[1] for r in rows}
+    """Get column names for a table, working with both SQLite and PostgreSQL."""
+    if DATABASE_URL.startswith("sqlite"):
+        # SQLite uses PRAGMA
+        rows = connection.execute(text(f"PRAGMA table_info({table})")).fetchall()
+        return {r[1] for r in rows}
+    else:
+        # PostgreSQL uses information_schema
+        rows = connection.execute(text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = :table
+        """), {"table": table}).fetchall()
+        return {r[0] for r in rows}
 
 
 def migrate_db():
-    """Add columns for existing SQLite DBs (create_all does not alter tables)."""
+    """Add columns for existing DBs (create_all does not alter tables)."""
     with engine.begin() as conn:
         existing = _column_names(conn)
         additions = [
@@ -129,13 +140,26 @@ def migrate_db():
             ("bounty_auec", "INTEGER DEFAULT 0"),
             ("bounty_message", "TEXT"),
             ("bounty_hunter_name", "VARCHAR"),
-            ("bounty_claimed_at", "DATETIME"),
-            ("bounty_cleared", "BOOLEAN DEFAULT 0"),
-            ("bounty_cleared_at", "DATETIME"),
+            ("bounty_claimed_at", "TIMESTAMP"),
+            ("bounty_cleared", "BOOLEAN DEFAULT FALSE"),
+            ("bounty_cleared_at", "TIMESTAMP"),
         ]
         for col, typ in additions:
             if col not in existing:
-                conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col} {typ}"))
+                try:
+                    if DATABASE_URL.startswith("sqlite"):
+                        conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col} {typ}"))
+                    else:
+                        # PostgreSQL - handle defaults separately
+                        if "DEFAULT" in typ:
+                            col_type, default_val = typ.split(" DEFAULT ", 1)
+                            conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col} {col_type}"))
+                            conn.execute(text(f"ALTER TABLE reports ALTER COLUMN {col} SET DEFAULT {default_val}"))
+                        else:
+                            conn.execute(text(f"ALTER TABLE reports ADD COLUMN {col} {typ}"))
+                except Exception as e:
+                    print(f"Warning: Could not add column {col}: {e}")
+                    # Continue with other columns
 
 
 def init_db():
