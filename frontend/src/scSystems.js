@@ -1,46 +1,32 @@
 /**
- * Systems we expose in UI — conservative list (playable + Nyx for Pyro-chain intel).
- * Jump graph: Stanton ↔ Pyro ↔ Nyx (no direct Stanton–Nyx).
+ * In-game systems only (Persistent Universe as shipped by CIG).
+ * Jump shown: Stanton ↔ Pyro (official jump point — see RSI Starmap / Galactapedia).
+ * No other systems, routes, or lore are shown here to avoid mixing fan maps with game data.
  */
 
-export const REPORT_SYSTEM_OPTIONS = ['Stanton', 'Pyro', 'Nyx']
+export const REPORT_SYSTEM_OPTIONS = ['Stanton', 'Pyro']
 
-/** Systems that exist in the PU today (for badges / emphasis). */
-export const PLAYABLE_SYSTEMS = new Set(['Stanton', 'Pyro'])
-
-/** Undirected jump pairs between map nodes (each pair drawn once). */
-export const MAP_JUMPS = [
-  ['Stanton', 'Pyro'],
-  ['Pyro', 'Nyx'],
-]
+/** Single verified PU jump route we visualize. */
+export const MAP_JUMPS = [['Stanton', 'Pyro']]
 
 /**
- * Map layout (schematic, not CIG coordinates — topology is what we guarantee).
- * f: faction tint for the node only.
+ * Schematic positions only. Names and connection match CIG sources; not navigational coordinates.
  */
 export const MAP_SYSTEMS = {
   Stanton: {
-    x: 420,
+    x: 380,
     y: 400,
     f: 'uee',
     play: true,
-    r: 24,
-    desc: 'Playable — Hurston, Crusader, ArcCorp, MicroTech.',
+    r: 26,
+    desc: 'In-game UEE system (Hurston, Crusader, ArcCorp, MicroTech).',
   },
   Pyro: {
-    x: 720,
+    x: 780,
     y: 400,
     f: 'lawless',
     play: true,
-    r: 20,
-    desc: 'Playable — lawless Pyro; jump point from Stanton.',
-  },
-  Nyx: {
-    x: 1020,
-    y: 400,
-    f: 'lawless',
-    play: false,
-    r: 16,
-    desc: 'Lawless — from Stanton, route through Pyro only (no direct jump).',
+    r: 22,
+    desc: 'In-game unclaimed system (Alpha 4.0+). Jump point from Stanton.',
   },
 }

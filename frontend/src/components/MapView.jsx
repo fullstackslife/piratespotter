@@ -7,41 +7,35 @@ import { MAP_SYSTEMS, MAP_JUMPS } from '../scSystems'
 const W = 1160
 const H = 760
 
-// ── Faction styling ────────────────────────────────────────────────────────────
+// ── Faction styling (only tags used on the two-node PU map) ───────────────────
 const F = {
   uee:     { core: '#2563a8', glow: '#3b82f6', label: '#93c5fd', name: 'UEE' },
-  lawless: { core: '#9a3412', glow: '#f97316', label: '#fdba74', name: 'Lawless' },
-  xian:    { core: '#065f46', glow: '#10b981', label: '#6ee7b7', name: "Xi'An" },
-  banu:    { core: '#5b21b6', glow: '#8b5cf6', label: '#c4b5fd', name: 'Banu' },
-  vanduul: { core: '#991b1b', glow: '#ef4444', label: '#fca5a5', name: 'Vanduul' },
+  lawless: { core: '#9a3412', glow: '#f97316', label: '#fdba74', name: 'Unclaimed' },
 }
 
 const FACTION_KEYS_IN_MAP = [...new Set(Object.values(MAP_SYSTEMS).map(s => s.f))]
 
-// ── Stanton inner system ───────────────────────────────────────────────────────
+// ── Stanton bodies: names from in-game / Galactapedia (no fan geography) ───────
 const STANTON_PLANETS = [
-  { name: 'Hurston',   orbit: 0.20, angle: 25,  color: '#8B5E3C', r: 2.5,
-    moons: ['Aberdeen','Arial','Ita','Magda'], station: 'Everus Harbor',
-    city: 'Lorville', notes: 'Industrial megacorp. Heavy pollution.' },
-  { name: 'Crusader',  orbit: 0.38, angle: 145, color: '#4a7fa5', r: 3.5,
-    moons: ['Daymar','Yela','Cellin'], station: 'Port Olisar',
-    city: 'Orison', notes: 'Gas giant. Major trade hub.' },
-  { name: 'ArcCorp',   orbit: 0.58, angle: 255, color: '#c08050', r: 2.8,
-    moons: ['Lyria','Wala'], station: 'Baijini Point',
-    city: 'Area18', notes: 'Fully urbanized city planet.' },
+  { name: 'Hurston', orbit: 0.2, angle: 25, color: '#8B5E3C', r: 2.5,
+    moons: ['Aberdeen', 'Arial', 'Ita', 'Magda'], city: 'Lorville', subtitle: 'Natural satellites: Aberdeen, Arial, Ita, Magda' },
+  { name: 'Crusader', orbit: 0.38, angle: 145, color: '#4a7fa5', r: 3.5,
+    moons: ['Daymar', 'Yela', 'Cellin'], city: 'Orison', subtitle: 'Natural satellites: Daymar, Yela, Cellin' },
+  { name: 'ArcCorp', orbit: 0.58, angle: 255, color: '#c08050', r: 2.8,
+    moons: ['Lyria', 'Wala'], city: 'Area 18', subtitle: 'Natural satellites: Lyria, Wala' },
   { name: 'MicroTech', orbit: 0.78, angle: 345, color: '#7ab8d4', r: 2.4,
-    moons: ['Calliope','Clio','Euterpe'], station: 'Port Tressler',
-    city: 'New Babbage', notes: 'Ice planet. Tech R&D hub.' },
+    moons: ['Calliope', 'Clio', 'Euterpe'], city: 'New Babbage', subtitle: 'Natural satellites: Calliope, Clio, Euterpe' },
 ]
 
-// ── Pyro inner system ──────────────────────────────────────────────────────────
+// ── Pyro bodies: order and names per Galactapedia / Starmap (Pyro system wiki) ─
 const PYRO_PLANETS = [
-  { name: 'Pyro I',   orbit: 0.14, angle: 40,  color: '#c04010', r: 2.0, moons: [], notes: 'Scorched rock. No atmosphere.' },
-  { name: 'Monox',    orbit: 0.26, angle: 150, color: '#a03010', r: 3.0, moons: ['Ignis'], notes: 'Toxic gas giant.' },
-  { name: 'Pyro III', orbit: 0.38, angle: 255, color: '#9a3820', r: 2.2, moons: [], notes: 'Barren rocky world.' },
-  { name: 'Bloom',    orbit: 0.52, angle: 335, color: '#cc6820', r: 2.8, moons: ['Terminus','Vatra'], notes: 'Station: Ruin. High piracy.' },
-  { name: 'Fuego',    orbit: 0.65, angle: 75,  color: '#e08030', r: 2.4, moons: ['Ignis','Vuur'], notes: 'Volcanic. Mining ops active.' },
-  { name: 'Adir',     orbit: 0.82, angle: 200, color: '#804020', r: 3.2, moons: ['Fairo','Velo'], notes: 'Gas giant. Contested space.' },
+  { name: 'Pyro I', orbit: 0.12, angle: 35, color: '#c04010', r: 1.9, moons: [], subtitle: 'Inner terrestrial (Galactapedia)' },
+  { name: 'Monox', orbit: 0.24, angle: 115, color: '#a03010', r: 2.3, moons: [], subtitle: 'Pyro II' },
+  { name: 'Bloom', orbit: 0.36, angle: 195, color: '#cc6820', r: 2.4, moons: [], subtitle: 'Pyro III' },
+  { name: 'Pyro IV', orbit: 0.48, angle: 275, color: '#884030', r: 2.0, moons: [], subtitle: 'Orbits Pyro V (Starmap)' },
+  { name: 'Pyro V', orbit: 0.62, angle: 355, color: '#5a9020', r: 3.1,
+    moons: ['Ignis', 'Vatra', 'Adir', 'Fairo', 'Fuego', 'Vuur'], subtitle: 'Gas giant — moons per Galactapedia / Starmap' },
+  { name: 'Terminus', orbit: 0.78, angle: 70, color: '#708090', r: 2.2, moons: [], subtitle: 'Pyro VI · Ruin Station orbit' },
 ]
 
 // ── Pre-generate starfield ─────────────────────────────────────────────────────
@@ -115,7 +109,7 @@ function InnerSystem({ planets, starColor, starR = 4 }) {
         const py = 50 + Math.sin(rad) * p.orbit * 46
         return (
           <g key={p.name}>
-            {p.moons.map((m, mi) => {
+            {(p.moons || []).map((m, mi) => {
               const mr = ((p.angle + 55 + mi * 85) * Math.PI) / 180
               const dist = p.r + 2.4 + mi * 1.6
               return (
@@ -225,7 +219,7 @@ export default function MapView() {
           position: 'absolute', top: 12, right: 12, zIndex: 10,
           fontSize: 10, color: '#484f58', maxWidth: 220, textAlign: 'right', lineHeight: 1.35,
         }}>
-          Schematic layout — jump topology only (not CIG coordinates).
+          Schematic only — orbit diagram not to scale. Names from RSI Galactapedia / Starmap.
         </div>
 
         <TransformWrapper
@@ -435,10 +429,7 @@ export default function MapView() {
                     }}>
                       {F[selSys.f].name}
                     </span>
-                    {selSys.play
-                      ? <span style={{ color: '#4ade80', fontSize: 10 }}>● PLAYABLE</span>
-                      : <span style={{ color: '#484f58', fontSize: 10 }}>● LORE ONLY</span>
-                    }
+                    <span style={{ color: '#4ade80', fontSize: 10 }}>● Persistent Universe</span>
                   </div>
                 </div>
                 {selHeat && (
@@ -479,18 +470,22 @@ export default function MapView() {
                 borderRadius: 10, overflow: 'hidden',
               }}>
                 <div style={{ padding: '8px 14px', borderBottom: '1px solid #1e2730', fontSize: 10, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
-                  {selected === 'Stanton' ? 'Planets & Stations' : 'Planets'}
+                  Major bodies (CIG / Galactapedia naming)
                 </div>
                 {(selected === 'Stanton' ? STANTON_PLANETS : PYRO_PLANETS).map(p => (
                   <div key={p.name} style={{ padding: '7px 14px', borderBottom: '1px solid #0d1218', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
                     <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.color, flexShrink: 0, marginTop: 3 }} />
                     <div>
                       <div style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 600 }}>{p.name}</div>
-                      <div style={{ fontSize: 10, color: '#484f58', marginTop: 1 }}>
-                        {p.city && <span style={{ color: '#6b7280' }}>{p.city} · </span>}
-                        {p.moons?.length > 0 ? p.moons.join(', ') : 'No moons'}
-                      </div>
-                      {p.notes && <div style={{ fontSize: 10, color: '#374151', marginTop: 1 }}>{p.notes}</div>}
+                      {p.city && (
+                        <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Primary landing: {p.city}</div>
+                      )}
+                      {p.moons?.length > 0 && (
+                        <div style={{ fontSize: 10, color: '#484f58', marginTop: 2 }}>Moons: {p.moons.join(', ')}</div>
+                      )}
+                      {p.subtitle && (
+                        <div style={{ fontSize: 10, color: '#374151', marginTop: 2 }}>{p.subtitle}</div>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -8,8 +8,8 @@ import uuid
 
 from database import SessionLocal, Report, init_db
 
-# Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js
-VALID_SYSTEMS = frozenset({"Stanton", "Pyro", "Nyx"})
+# Must match frontend `REPORT_SYSTEM_OPTIONS` in src/scSystems.js — PU systems only
+VALID_SYSTEMS = frozenset({"Stanton", "Pyro"})
 
 app = FastAPI(title="PirateSpotters API")
 
@@ -55,7 +55,7 @@ def seed_data():
         ("Daymar Surface", "Stanton", "griefer", "low", None, "Ramming ships on landing pads"),
         ("Pyro jump side", "Pyro", "blockade", "high", "Hammerhead", "Org blockade, 4+ ships"),
         ("Covalex Hub", "Stanton", "ambush", "medium", "Freelancer MIS", None),
-        ("Nyx relay", "Nyx", "org", "high", None, "Heavily armed group (intel via Pyro route)"),
+        ("Stanton Gateway", "Pyro", "org", "high", None, "Heavy presence near Stanton jump side"),
         ("Crusader Orbit", "Stanton", "ambush", "medium", "Cutlass Black", "Waiting near comm arrays"),
         ("Ruin Station", "Pyro", "ambush", "medium", "Gladius", "Interdicting traders near Bloom"),
         ("Fuego belt", "Pyro", "patrol", "low", "Freelancer", "Scanning miners"),
