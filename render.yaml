@@ -2,6 +2,8 @@ services:
   # ── Backend API ────────────────────────────────────────────────
   - type: web
     name: piratespotter-api
+    branch: main
+    autoDeployTrigger: commit
     runtime: python
     rootDir: backend
     plan: free
@@ -12,6 +14,8 @@ services:
   # ── Frontend static site ───────────────────────────────────────
   - type: web
     name: piratespotter-frontend
+    branch: main
+    autoDeployTrigger: commit
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
