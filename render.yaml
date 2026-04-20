@@ -57,7 +57,7 @@ services:
         destination: /index.html
 
   # ── Discord Bot ────────────────────────────────────────────────
-  - type: worker
+  - type: web
     name: piratespotter-bot
     branch: main
     autoDeployTrigger: commit
@@ -66,6 +66,7 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
+    healthCheckPath: /health
     envVars:
       - key: DISCORD_TOKEN
         sync: false

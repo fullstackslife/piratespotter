@@ -13,7 +13,7 @@ import asyncio
 import os
 import re
 from datetime import datetime, timezone
-from aiohttp import ClientSession, ClientError, ClientTimeout
+from aiohttp import web, ClientSession, ClientError, ClientTimeout
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -21,6 +21,7 @@ from discord.ext import commands, tasks
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
 BOT_SECRET = os.environ.get("BOT_SECRET", "")
 SITE_URL = os.environ.get("SITE_URL", "https://piratespotter-frontend.onrender.com")
+PORT = int(os.environ.get("PORT", "0"))  # set by Render for web services; 0 = worker mode
 
 # 12 hex chars = 16^12 ≈ 281 trillion combinations; collision is impossible at any realistic scale.
 # _find_by_short_id also enforces uniqueness at runtime with a hard error.
@@ -759,7 +760,23 @@ async def on_guild_join(guild: discord.Guild):
             break
 
 
-async def main():
+async def _run_health_server():
+    """Bind a minimal HTTP server when running as a Render web service (PORT is set).
+    Workers don't set PORT so this is a no-op in worker mode."""
+    if not PORT:
+        return
+    app = web.Application()
+    async def _ok(request):
+        return web.Response(text="ok")
+    app.router.add_get("/", _ok)
+    app.router.add_get("/health", _ok)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", PORT).start()
+    print(f"[health] HTTP server on port {PORT}")
+
+
+async def _run_bot():
     token = os.environ["DISCORD_TOKEN"]
     backoff = 5
     while True:
@@ -773,11 +790,14 @@ async def main():
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 120)
             await bot.close()
-            # Reset the bot client state so it can reconnect cleanly
             bot._closed = False
             bot._ready.clear()
         else:
             break
+
+
+async def main():
+    await asyncio.gather(_run_health_server(), _run_bot())
 
 
 asyncio.run(main())
