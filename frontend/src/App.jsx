@@ -4,6 +4,7 @@ import ReportModal from './components/ReportModal'
 import MapView from './components/MapView'
 import Sidebar from './components/Sidebar'
 import BotGuide from './components/BotGuide'
+import HuntingGuide from './components/HuntingGuide'
 import AdminPanel, { isAdmin } from './components/AdminPanel'
 import { getToken, setToken, clearToken, decodeToken, apiUrl } from './api'
 
@@ -84,6 +85,7 @@ export default function App() {
           {[
             { key: 'feed',    label: 'Live Feed' },
             { key: 'map',     label: 'Star Map'  },
+            { key: 'hunting', label: '🎯 Hunter\'s Guide' },
             { key: 'discord', label: '🤖 Discord Bot' },
             ...(isAdmin(user) ? [{ key: 'admin', label: '⚙ Admin' }] : []),
           ].map(({ key, label }) => (
@@ -208,6 +210,11 @@ export default function App() {
             minWidth: 0,
           }}>
             <MapView />
+          </main>
+        )}
+        {tab === 'hunting' && (
+          <main className="app-main" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+            <HuntingGuide />
           </main>
         )}
         {tab === 'discord' && (
