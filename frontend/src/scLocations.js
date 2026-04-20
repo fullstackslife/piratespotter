@@ -307,22 +307,34 @@ export const STANTON_BODIES = [
 
 /** System-scale reference (not tied to a single planet body in the tree). */
 export const STANTON_SPACE = [
+  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
+  { name: 'Pyro Jump Point', kind: 'gate', note: 'Stanton ↔ Pyro — active in PU since 4.0. Outer Stanton system.' },
+  { name: 'Nyx Jump Point', kind: 'gate', note: 'Stanton ↔ Nyx — listed on RSI Starmap; accessible in current PU.' },
+  { name: 'Magnus Jump Point', kind: 'gate', note: 'Stanton ↔ Magnus — RSI Starmap; PU accessibility varies by patch.' },
+  { name: 'Terra Jump Point', kind: 'gate', note: 'Stanton ↔ Terra — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Davien Jump Point', kind: 'gate', note: 'Stanton ↔ Davien — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Banshee Jump Point', kind: 'gate', note: 'Stanton ↔ Banshee — RSI Starmap; not PU-accessible in current alpha.' },
+  // ── Asteroid belt ─────────────────────────────────────────────────────────
   { name: 'Aaron Halo', kind: 'asteroid_belt', note: 'Asteroid belt between Crusader and ArcCorp (Galactapedia / wiki).' },
+  // ── Hurston Lagrange R&R ──────────────────────────────────────────────────
   { name: 'HUR-L1 Green Glade Station', kind: 'lagrange', note: 'Hurston L1 R&R rest stop (wiki).' },
   { name: 'HUR-L2 Faithful Dream Station', kind: 'lagrange', note: 'Hurston L2 R&R rest stop (wiki).' },
   { name: 'HUR-L3 Thundering Express Station', kind: 'lagrange', note: 'Hurston L3 R&R rest stop (wiki).' },
   { name: 'HUR-L4 Melodic Fields Station', kind: 'lagrange', note: 'Hurston L4 R&R rest stop (wiki).' },
   { name: 'HUR-L5 High Course Station', kind: 'lagrange', note: 'Hurston L5 R&R rest stop (wiki).' },
+  // ── Crusader Lagrange R&R ─────────────────────────────────────────────────
   { name: 'CRU-L1 Ambitious Dream Station', kind: 'lagrange', note: 'Crusader L1 R&R rest stop (wiki).' },
   { name: 'CRU-L2 (mining claims)', kind: 'lagrange', note: 'Crusader L2 debris field / claims (wiki).' },
   { name: 'CRU-L3 (mining claims)', kind: 'lagrange', note: 'Crusader L3 debris field / claims (wiki).' },
   { name: 'CRU-L4 Shallow Fields Station', kind: 'lagrange', note: 'Crusader L4 R&R rest stop (wiki).' },
   { name: 'CRU-L5 Beautiful Glen Station', kind: 'lagrange', note: 'Crusader L5 R&R rest stop (wiki).' },
+  // ── ArcCorp Lagrange R&R ──────────────────────────────────────────────────
   { name: 'ARC-L1 Wide Forest Station', kind: 'lagrange', note: 'ArcCorp L1 R&R rest stop (wiki).' },
   { name: 'ARC-L2 Lively Pathway Station', kind: 'lagrange', note: 'ArcCorp L2 R&R rest stop (wiki).' },
   { name: 'ARC-L3 Modern Express Station', kind: 'lagrange', note: 'ArcCorp L3 R&R rest stop (wiki).' },
   { name: 'ARC-L4 Faint Glen Station', kind: 'lagrange', note: 'ArcCorp L4 R&R rest stop (wiki).' },
   { name: 'ARC-L5 Yellow Core Station', kind: 'lagrange', note: 'ArcCorp L5 R&R rest stop (wiki).' },
+  // ── microTech Lagrange R&R ────────────────────────────────────────────────
   { name: 'MIC-L1 Shallow Frontier Station', kind: 'lagrange', note: 'microTech L1 R&R rest stop (wiki).' },
   { name: 'MIC-L2 Long Forest Station', kind: 'lagrange', note: 'microTech L2 R&R rest stop (wiki).' },
   { name: 'MIC-L3 Endless Odyssey Station', kind: 'lagrange', note: 'microTech L3 R&R rest stop (wiki).' },
@@ -427,19 +439,25 @@ export const PYRO_BODIES = [
 ]
 
 export const PYRO_SPACE = [
-  { name: 'Stanton Gateway', kind: 'gate', note: 'Jump station toward Stanton (Galactapedia / in-game).' },
-  { name: 'Nyx Gateway', kind: 'gate', note: 'Jump station toward Nyx (Galactapedia / in-game).' },
+  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
+  { name: 'Stanton Gateway', kind: 'gate', note: 'Pyro ↔ Stanton — active jump gate; accessible in PU since 4.0 (Galactapedia / in-game).' },
+  { name: 'Nyx Gateway', kind: 'gate', note: 'Pyro ↔ Nyx — active jump gate in PU (Galactapedia / in-game).' },
+  { name: 'Aaron Jump Point', kind: 'gate', note: 'Pyro ↔ Aaron — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Castra Jump Point (Pyro)', kind: 'gate', note: 'Pyro ↔ Castra — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Ellis Jump Point', kind: 'gate', note: 'Pyro ↔ Ellis — RSI Starmap; not PU-accessible in current alpha.' },
+  // ── Asteroid belts ────────────────────────────────────────────────────────
   { name: 'Akiro Cluster', kind: 'asteroid_belt', note: 'Charred asteroids near Pyro I L3; rare materials (wiki / Starmap).' },
-  { name: 'Checkmate Station (Monox L4)', kind: 'lagrange', note: "Rough & Ready HQ; Fool's Run exterior race (wiki)." },
-  { name: 'Orbituary', kind: 'station', note: 'Above Bloom — Rough & Ready marketplace, clinic, habs (wiki).' },
-  { name: 'Pyro V Lagrange platforms', kind: 'lagrange', note: 'Former Pyrotechnic Amalgamated stations at L-points (Galactapedia).' },
-  { name: 'Terminus Lagrange (PA derelicts)', kind: 'lagrange', note: 'Former Pyrotechnic stations at Terminus L-points (wiki).' },
-  { name: 'Pyro I Lagrange (PA derelicts)', kind: 'lagrange', note: 'Abandoned company stations at Pyro I L-points (wiki).' },
   {
     name: 'Minor asteroid clusters',
     kind: 'asteroid_belt',
     note: 'Named clusters e.g. BGR-560, CAJ-445, EMM-567, FSN-704, GRP-839, JWY-925, HJS-232, KKE-717, LHB-976, MNK-833, NDB-102, PQE-291, RSC-340, SGL-693, SZA-178, TYS-908, VUP-613, WDH-387, YKA-011 (wiki Pyro system).',
   },
+  // ── Stations & factions ───────────────────────────────────────────────────
+  { name: 'Checkmate Station (Monox L4)', kind: 'lagrange', note: "Rough & Ready HQ; Fool's Run exterior race (wiki)." },
+  { name: 'Orbituary', kind: 'station', note: 'Above Bloom — Rough & Ready marketplace, clinic, habs (wiki).' },
+  { name: 'Pyro V Lagrange platforms', kind: 'lagrange', note: 'Former Pyrotechnic Amalgamated stations at L-points (Galactapedia).' },
+  { name: 'Terminus Lagrange (PA derelicts)', kind: 'lagrange', note: 'Former Pyrotechnic stations at Terminus L-points (wiki).' },
+  { name: 'Pyro I Lagrange (PA derelicts)', kind: 'lagrange', note: 'Abandoned company stations at Pyro I L-points (wiki).' },
   { name: 'Rough & Ready stations', kind: 'station', note: 'Faction hubs including Checkmate & Orbituary (wiki).' },
   { name: 'Citizens for Prosperity stations', kind: 'station', note: 'CfP-controlled sites in Pyro (wiki system summary).' },
 ]
@@ -507,15 +525,22 @@ export const NYX_BODIES = [
 ]
 
 export const NYX_SPACE = [
+  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
+  { name: 'Pyro Gateway (Nyx side)', kind: 'gate', note: 'Nyx ↔ Pyro — active jump gate accessible in PU (wiki jump table).' },
+  { name: 'Stanton Jump Point (Nyx side)', kind: 'gate', note: 'Nyx ↔ Stanton — large bidirectional JP accessible in PU (wiki Nyx system).' },
+  { name: 'Castra Jump Point (Nyx)', kind: 'gate', note: 'Nyx ↔ Castra — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Bremen Jump Point', kind: 'gate', note: 'Nyx ↔ Bremen — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Odin Jump Point', kind: 'gate', note: 'Nyx ↔ Odin — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Tohil Jump Point', kind: 'gate', note: 'Nyx ↔ Tohil — RSI Starmap; not PU-accessible in current alpha.' },
+  { name: 'Virgil Jump Point', kind: 'gate', note: 'Nyx ↔ Virgil — RSI Starmap; not PU-accessible in current alpha.' },
+  // ── Asteroid belts ────────────────────────────────────────────────────────
   { name: 'Glaciem Ring (Nyx belt alpha)', kind: 'asteroid_belt', note: 'Dense inner belt; Delamar embedded here (Galactapedia).' },
   { name: 'Keeger Belt (Nyx belt beta)', kind: 'asteroid_belt', note: 'Outermost belt; suspected outlaw strongholds (Galactapedia).' },
+  // ── Stations & factions ───────────────────────────────────────────────────
   { name: 'Moraine settlements', kind: 'outpost', note: 'Smuggler faction sites scattered through the Glaciem Ring (wiki).' },
   {
     name: "People's service stations",
     kind: 'station',
     note: "Keeger Belt — former QV Planet Services hubs, now People's Alliance (Alpha 4.7+; wiki).",
   },
-  { name: 'Pyro Gateway (Nyx side)', kind: 'gate', note: 'Jump interface toward Pyro (wiki jump table).' },
-  { name: 'Stanton jump (Nyx)', kind: 'gate', note: 'Large bidirectional JP toward Stanton (wiki Nyx system).' },
-  { name: 'Castra / Bremen / Odin / Tohil / Virgil jumps', kind: 'gate', note: 'Additional large/medium links on RSI Starmap (not all PU).' },
 ]

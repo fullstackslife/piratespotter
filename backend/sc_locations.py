@@ -49,6 +49,10 @@ STANTON_LOCATIONS: frozenset[str] = frozenset({
     "rayari", "ghost hollow", "outpost 54", "the necropolis",
     "mt datacenter", "cry-astro processing plant",
     "greycat stanton iv",
+    # Stanton jump points (RSI Starmap / in-game)
+    "pyro jump point", "nyx jump point",
+    "magnus jump point", "terra jump point",
+    "davien jump point", "banshee jump point",
     # Stanton Lagrange / R&R
     "aaron halo",
     "hur-l1", "hur-l2", "hur-l3", "hur-l4", "hur-l5",
@@ -76,8 +80,10 @@ PYRO_LOCATIONS: frozenset[str] = frozenset({
     "ruin station", "neutrality", "corner four",
     "checkmate station", "orbituary",
     "akiro cluster",
-    # Jump gates (Pyro side)
+    # Jump gates (Pyro side — RSI Starmap / in-game)
     "stanton gateway", "nyx gateway",
+    "aaron jump point", "castra jump point",
+    "ellis jump point",
     # Space extras
     "pyro i lagrange", "pyro v lagrange", "terminus lagrange",
     "rough & ready",
@@ -94,8 +100,11 @@ NYX_LOCATIONS: frozenset[str] = frozenset({
     # Belt features
     "glaciem ring", "keeger belt",
     "moraine", "people's service station",
-    # Jump gates (Nyx side)
-    "pyro gateway", "stanton jump",
+    # Jump gates (Nyx side — RSI Starmap / in-game)
+    "pyro gateway", "stanton jump point",
+    "castra jump point", "bremen jump point",
+    "odin jump point", "tohil jump point",
+    "virgil jump point",
 })
 
 # Build combined lookup: name_lower → system
