@@ -23,6 +23,11 @@ STANTON_LOCATIONS: frozenset[str] = frozenset({
     "lorville", "everus harbor", "teasa spaceport",
     "reclamation & disposal", "klescher",
     "klescher rehabilitation facility",
+    "hdms-edmond", "hdms-hadley", "hdms-oparei",
+    "hdms-pinewood", "hdms-stanhope", "hdms-thedus",
+    "cutter's rig", "finn's folly", "ludlow",
+    "maker's point", "pickers field", "rappel",
+    "weeping cove", "zephyr",
     # Crusader POIs
     "orison", "seraphim station",
     # ArcCorp POIs
@@ -43,16 +48,17 @@ STANTON_LOCATIONS: frozenset[str] = frozenset({
     # Lyria POIs
     "humboldt mines", "loveridge mineral reserve",
     "shubin mining facility sal-2", "shubin mining facility sal-5",
+    "paradise cove", "the orphanage",
     # Wala POIs
     "shady glen farms", "arccore mining area 045",
     # MicroTech surface
     "rayari", "ghost hollow", "outpost 54", "the necropolis",
     "mt datacenter", "cry-astro processing plant",
     "greycat stanton iv",
-    # Stanton jump points (RSI Starmap / in-game)
-    "pyro jump point", "nyx jump point",
-    "magnus jump point", "terra jump point",
-    "davien jump point", "banshee jump point",
+    "astor's clearing", "bloodshot ridge", "dunboro",
+    "frostbite", "harper's point", "moreland hills", "razor's edge",
+    # Stanton jump gates (in-game names per SC Trade Tools)
+    "pyro gateway", "nyx gateway", "terra gateway",
     # Stanton Lagrange / R&R
     "aaron halo",
     "hur-l1", "hur-l2", "hur-l3", "hur-l4", "hur-l5",
@@ -76,18 +82,28 @@ PYRO_LOCATIONS: frozenset[str] = frozenset({
     "pyro v", "pyro 5", "terminus",
     # Pyro V moons
     "ignis", "vatra", "adir", "fairo", "fuego", "vuur",
-    # Key POIs
+    # Pyro I
+    "rustville",
+    # Bloom surface
+    "orbituary", "bueno ravine", "frigid knot", "sheperd's rest", "the golden riviera",
+    # Monox surface
+    "arid reach", "jackson's swap", "sunset mesa",
+    # Pyro V moon surface
+    "ashland", "kabir's outpost", "seer's canyon",
+    # Pyro IV surface (moon of Pyro V)
+    "chawla's beach", "fallow field", "goner's deal", "sacren's plot",
+    # Terminus
     "ruin station", "neutrality", "corner four",
-    "checkmate station", "orbituary",
+    "blackrock exchange", "canard view", "last landings", "rough landing",
+    # System-wide stations (SC Trade Tools)
+    "checkmate", "dudley & daughters", "endgame", "gaslight",
+    "megumi refueling", "patch city", "rat's nest",
+    "rod's fuel 'n supplies", "starlight service station",
     "akiro cluster",
-    # Jump gates (Pyro side — RSI Starmap / in-game)
-    "stanton gateway", "nyx gateway",
-    "aaron jump point", "castra jump point",
-    "ellis jump point",
-    # Space extras
-    "pyro i lagrange", "pyro v lagrange", "terminus lagrange",
-    "rough & ready",
-    "citizens for prosperity",
+    # Jump gates (SC Trade Tools in-game names)
+    "pyro-stanton jump point", "pyro-nyx jump point",
+    # Factions
+    "rough & ready", "citizens for prosperity",
 })
 
 NYX_LOCATIONS: frozenset[str] = frozenset({
@@ -100,11 +116,15 @@ NYX_LOCATIONS: frozenset[str] = frozenset({
     # Belt features
     "glaciem ring", "keeger belt",
     "moraine", "people's service station",
-    # Jump gates (Nyx side — RSI Starmap / in-game)
-    "pyro gateway", "stanton jump point",
+    # Keeger Belt stations (SC Trade Tools)
+    "people's service station alpha", "people's service station delta",
+    "people's service station lambda", "people's service station theta",
+    "people's service station",
+    # Jump gates (SC Trade Tools in-game names)
+    "nyx-pyro jump point", "nyx-stanton jump point",
+    # RSI Starmap only
     "castra jump point", "bremen jump point",
-    "odin jump point", "tohil jump point",
-    "virgil jump point",
+    "odin jump point", "tohil jump point", "virgil jump point",
 })
 
 # Build combined lookup: name_lower → system

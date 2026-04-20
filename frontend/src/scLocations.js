@@ -30,8 +30,23 @@ export const STANTON_BODIES = [
       { name: 'Lorville', kind: 'city' },
       { name: 'Everus Harbor', kind: 'station' },
       { name: 'Comm Array ST1-61', kind: 'comm_array' },
+      { name: 'Reclamation & Disposal Orinth', kind: 'industrial' },
       { name: 'Reclamation & Disposal East', kind: 'industrial' },
       { name: 'Reclamation & Disposal West', kind: 'industrial' },
+      { name: 'HDMS-Edmond', kind: 'mining' },
+      { name: 'HDMS-Hadley', kind: 'mining' },
+      { name: 'HDMS-Oparei', kind: 'mining' },
+      { name: 'HDMS-Pinewood', kind: 'mining' },
+      { name: 'HDMS-Stanhope', kind: 'mining' },
+      { name: 'HDMS-Thedus', kind: 'mining' },
+      { name: "Cutter's Rig", kind: 'outpost' },
+      { name: "Finn's Folly", kind: 'outpost' },
+      { name: 'Ludlow', kind: 'outpost' },
+      { name: "Maker's Point", kind: 'outpost' },
+      { name: "Pickers Field", kind: 'outpost' },
+      { name: 'Rappel', kind: 'outpost' },
+      { name: 'Weeping Cove', kind: 'outpost' },
+      { name: 'Zephyr', kind: 'outpost' },
     ],
     moons: [
       {
@@ -197,6 +212,8 @@ export const STANTON_BODIES = [
           { name: 'Loveridge Mineral Reserve', kind: 'mining' },
           { name: 'Shubin Mining Facility SAL-2', kind: 'mining' },
           { name: 'Shubin Mining Facility SAL-5', kind: 'mining' },
+          { name: 'Paradise Cove', kind: 'outpost' },
+          { name: 'The Orphanage', kind: 'outpost' },
           { name: 'Shubin Processing Facility SPAL-3', kind: 'industrial' },
           { name: 'Shubin Processing Facility SPAL-7', kind: 'industrial' },
           { name: 'Shubin Processing Facility SPAL-9', kind: 'industrial' },
@@ -250,6 +267,13 @@ export const STANTON_BODIES = [
       { name: 'MicroTech Logistics Depot S4LD13', kind: 'industrial' },
       { name: 'Sakura Sun Goldenrod Workcenter', kind: 'industrial' },
       { name: 'Greycat Stanton IV Production Complex-A', kind: 'industrial' },
+      { name: "Astor's Clearing", kind: 'outpost' },
+      { name: 'Bloodshot Ridge', kind: 'outpost' },
+      { name: 'Dunboro', kind: 'outpost' },
+      { name: 'Frostbite', kind: 'outpost' },
+      { name: "Harper's Point", kind: 'outpost' },
+      { name: 'Moreland Hills', kind: 'outpost' },
+      { name: "Razor's Edge", kind: 'outpost' },
       { name: 'Calhoun Pass Emergency Shelter', kind: 'landing' },
       { name: 'Point Wain Emergency Shelter', kind: 'landing' },
       { name: 'Nuiqsut Emergency Shelter', kind: 'landing' },
@@ -307,13 +331,10 @@ export const STANTON_BODIES = [
 
 /** System-scale reference (not tied to a single planet body in the tree). */
 export const STANTON_SPACE = [
-  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
-  { name: 'Pyro Jump Point', kind: 'gate', note: 'Stanton ↔ Pyro — active in PU since 4.0. Outer Stanton system.' },
-  { name: 'Nyx Jump Point', kind: 'gate', note: 'Stanton ↔ Nyx — listed on RSI Starmap; accessible in current PU.' },
-  { name: 'Magnus Jump Point', kind: 'gate', note: 'Stanton ↔ Magnus — RSI Starmap; PU accessibility varies by patch.' },
-  { name: 'Terra Jump Point', kind: 'gate', note: 'Stanton ↔ Terra — RSI Starmap; not PU-accessible in current alpha.' },
-  { name: 'Davien Jump Point', kind: 'gate', note: 'Stanton ↔ Davien — RSI Starmap; not PU-accessible in current alpha.' },
-  { name: 'Banshee Jump Point', kind: 'gate', note: 'Stanton ↔ Banshee — RSI Starmap; not PU-accessible in current alpha.' },
+  // ── Jump gates (in-game names per SC Trade Tools / RSI Starmap) ──────────
+  { name: 'Pyro Gateway', kind: 'gate', note: 'Stanton ↔ Pyro — active in PU since 4.0 (SC Trade Tools / in-game).' },
+  { name: 'Nyx Gateway', kind: 'gate', note: 'Stanton ↔ Nyx — active in PU (SC Trade Tools / in-game).' },
+  { name: 'Terra Gateway', kind: 'gate', note: 'Stanton ↔ Terra — in-game gateway (SC Trade Tools / RSI Starmap).' },
   // ── Asteroid belt ─────────────────────────────────────────────────────────
   { name: 'Aaron Halo', kind: 'asteroid_belt', note: 'Asteroid belt between Crusader and ArcCorp (Galactapedia / wiki).' },
   // ── Hurston Lagrange R&R ──────────────────────────────────────────────────
@@ -351,6 +372,7 @@ export const PYRO_BODIES = [
     color: '#c04010',
     r: 1.9,
     pois: [
+      { name: 'Rustville', kind: 'outpost' },
       { name: 'Solar flare & radiation hazard zones', kind: 'industrial' },
       { name: 'Distortion storms (lethal irradiation)', kind: 'industrial' },
       { name: 'Northern hemisphere cyclone', kind: 'orbital' },
@@ -365,6 +387,9 @@ export const PYRO_BODIES = [
     color: '#a03010',
     r: 2.3,
     pois: [
+      { name: 'Arid Reach', kind: 'outpost' },
+      { name: "Jackson's Swap", kind: 'outpost' },
+      { name: 'Sunset Mesa', kind: 'outpost' },
       { name: 'Abandoned mining complexes', kind: 'industrial' },
       { name: 'Carbon monoxide atmosphere (toxic)', kind: 'industrial' },
       { name: 'Valakkar / deep-worm hazard regions', kind: 'outpost' },
@@ -379,13 +404,15 @@ export const PYRO_BODIES = [
     color: '#cc6820',
     r: 2.4,
     pois: [
+      { name: 'Orbituary', kind: 'station' },
+      { name: 'Bueno Ravine', kind: 'outpost' },
+      { name: 'Frigid Knot', kind: 'outpost' },
+      { name: "Sheperd's Rest", kind: 'outpost' },
+      { name: 'The Golden Riviera', kind: 'outpost' },
       { name: 'Abandoned Pyrotechnic Amalgamated facilities', kind: 'industrial' },
       { name: 'Outlaw & squatter camps', kind: 'outpost' },
       { name: 'Citizens for Prosperity presence', kind: 'outpost' },
-      { name: 'Headhunters contest zones', kind: 'outpost' },
-      { name: 'XenoThreat contest zones', kind: 'outpost' },
       { name: 'Brine seas & temperate biomes', kind: 'mining' },
-      { name: 'Cave Kopion habitats', kind: 'outpost' },
     ],
     moons: [],
   },
@@ -413,12 +440,25 @@ export const PYRO_BODIES = [
       { name: 'Low-yield refuel lanes', kind: 'industrial' },
     ],
     moons: [
-      { name: 'Ignis', pois: [{ name: 'Deep canyons & dry riverbeds', kind: 'outpost' }, { name: 'SO₂ atmosphere — suit O₂ scrape', kind: 'industrial' }] },
-      { name: 'Vatra', pois: [{ name: 'N₂–CH₄ haze & hydrocarbon flora', kind: 'outpost' }] },
+      { name: 'Ignis', pois: [
+        { name: 'Ashland', kind: 'outpost' },
+        { name: "Kabir's Outpost", kind: 'outpost' },
+        { name: 'Deep canyons & dry riverbeds', kind: 'outpost' },
+      ]},
+      { name: 'Vatra', pois: [
+        { name: "Seer's Canyon", kind: 'outpost' },
+        { name: 'N₂–CH₄ haze & hydrocarbon flora', kind: 'outpost' },
+      ]},
+      { name: 'Pyro IV', pois: [
+        { name: "Chawla's Beach", kind: 'outpost' },
+        { name: 'Fallow Field', kind: 'outpost' },
+        { name: "Goner's Deal", kind: 'outpost' },
+        { name: "Sacren's Plot", kind: 'outpost' },
+      ]},
       { name: 'Adir', pois: [{ name: 'Craters & jagged highlands', kind: 'mining' }] },
-      { name: 'Fairo', pois: [{ name: 'Seismic brackish seas', kind: 'mining' }, { name: 'Subsurface ecology sites', kind: 'outpost' }] },
-      { name: 'Fuego', pois: [{ name: 'Iron-sulfide badlands', kind: 'mining' }, { name: 'Headhunters stash lore regions', kind: 'outpost' }] },
-      { name: 'Vuur', pois: [{ name: 'Crystalline carbon flora', kind: 'mining' }, { name: 'Warmer carbon-rich basins', kind: 'outpost' }] },
+      { name: 'Fairo', pois: [{ name: 'Seismic brackish seas', kind: 'mining' }] },
+      { name: 'Fuego', pois: [{ name: 'Iron-sulfide badlands', kind: 'mining' }] },
+      { name: 'Vuur', pois: [{ name: 'Crystalline carbon flora', kind: 'mining' }] },
     ],
   },
   {
@@ -428,10 +468,13 @@ export const PYRO_BODIES = [
     color: '#708090',
     r: 2.2,
     pois: [
-      { name: 'Ruin Station (orbital)', kind: 'station' },
-      { name: 'Neutrality (bar inside Ruin Station)', kind: 'outpost' },
-      { name: 'Corner Four (labs / drug factories)', kind: 'industrial' },
-      { name: 'XenoThreat, Overlords, Fire Rats, Darkside Rovers (contested)', kind: 'outpost' },
+      { name: 'Ruin Station', kind: 'station' },
+      { name: 'Neutrality', kind: 'outpost' },
+      { name: 'Corner Four', kind: 'industrial' },
+      { name: 'Blackrock Exchange', kind: 'outpost' },
+      { name: 'Canard View', kind: 'outpost' },
+      { name: 'Last Landings', kind: 'outpost' },
+      { name: 'Rough Landing', kind: 'outpost' },
       { name: 'Methane ice surface expeditions', kind: 'mining' },
     ],
     moons: [],
@@ -439,26 +482,23 @@ export const PYRO_BODIES = [
 ]
 
 export const PYRO_SPACE = [
-  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
-  { name: 'Stanton Gateway', kind: 'gate', note: 'Pyro ↔ Stanton — active jump gate; accessible in PU since 4.0 (Galactapedia / in-game).' },
-  { name: 'Nyx Gateway', kind: 'gate', note: 'Pyro ↔ Nyx — active jump gate in PU (Galactapedia / in-game).' },
-  { name: 'Aaron Jump Point', kind: 'gate', note: 'Pyro ↔ Aaron — RSI Starmap; not PU-accessible in current alpha.' },
-  { name: 'Castra Jump Point (Pyro)', kind: 'gate', note: 'Pyro ↔ Castra — RSI Starmap; not PU-accessible in current alpha.' },
-  { name: 'Ellis Jump Point', kind: 'gate', note: 'Pyro ↔ Ellis — RSI Starmap; not PU-accessible in current alpha.' },
+  // ── Jump gates (in-game names per SC Trade Tools) ─────────────────────────
+  { name: 'Pyro-Stanton Jump Point', kind: 'gate', note: 'Pyro ↔ Stanton — active in PU since 4.0 (SC Trade Tools / in-game).' },
+  { name: 'Pyro-Nyx Jump Point', kind: 'gate', note: 'Pyro ↔ Nyx — active in PU (SC Trade Tools / in-game).' },
+  // ── Stations (system-wide, not tied to a single planet) ──────────────────
+  { name: 'Checkmate', kind: 'lagrange', note: "Rough & Ready HQ near Monox L4; Fool's Run race (SC Trade Tools)." },
+  { name: 'Dudley & Daughters', kind: 'station', note: 'Trading post in Pyro system (SC Trade Tools).' },
+  { name: 'Endgame', kind: 'station', note: 'Station in Pyro system (SC Trade Tools).' },
+  { name: 'Gaslight', kind: 'station', note: 'Station in Pyro system (SC Trade Tools).' },
+  { name: 'Megumi Refueling', kind: 'station', note: 'Refueling station in Pyro system (SC Trade Tools).' },
+  { name: 'Patch City', kind: 'station', note: 'Station in Pyro system (SC Trade Tools).' },
+  { name: "Rat's Nest", kind: 'station', note: 'Outlaw hub in Pyro system (SC Trade Tools).' },
+  { name: "Rod's Fuel 'N Supplies", kind: 'station', note: 'Fuel & supply stop in Pyro system (SC Trade Tools).' },
+  { name: 'Starlight Service Station', kind: 'station', note: 'Service station in Pyro system (SC Trade Tools).' },
   // ── Asteroid belts ────────────────────────────────────────────────────────
-  { name: 'Akiro Cluster', kind: 'asteroid_belt', note: 'Charred asteroids near Pyro I L3; rare materials (wiki / Starmap).' },
-  {
-    name: 'Minor asteroid clusters',
-    kind: 'asteroid_belt',
-    note: 'Named clusters e.g. BGR-560, CAJ-445, EMM-567, FSN-704, GRP-839, JWY-925, HJS-232, KKE-717, LHB-976, MNK-833, NDB-102, PQE-291, RSC-340, SGL-693, SZA-178, TYS-908, VUP-613, WDH-387, YKA-011 (wiki Pyro system).',
-  },
-  // ── Stations & factions ───────────────────────────────────────────────────
-  { name: 'Checkmate Station (Monox L4)', kind: 'lagrange', note: "Rough & Ready HQ; Fool's Run exterior race (wiki)." },
-  { name: 'Orbituary', kind: 'station', note: 'Above Bloom — Rough & Ready marketplace, clinic, habs (wiki).' },
+  { name: 'Akiro Cluster', kind: 'asteroid_belt', note: 'Charred asteroids near Pyro I; rare materials (wiki / Starmap).' },
+  // ── Factions / misc ───────────────────────────────────────────────────────
   { name: 'Pyro V Lagrange platforms', kind: 'lagrange', note: 'Former Pyrotechnic Amalgamated stations at L-points (Galactapedia).' },
-  { name: 'Terminus Lagrange (PA derelicts)', kind: 'lagrange', note: 'Former Pyrotechnic stations at Terminus L-points (wiki).' },
-  { name: 'Pyro I Lagrange (PA derelicts)', kind: 'lagrange', note: 'Abandoned company stations at Pyro I L-points (wiki).' },
-  { name: 'Rough & Ready stations', kind: 'station', note: 'Faction hubs including Checkmate & Orbituary (wiki).' },
   { name: 'Citizens for Prosperity stations', kind: 'station', note: 'CfP-controlled sites in Pyro (wiki system summary).' },
 ]
 
@@ -525,9 +565,9 @@ export const NYX_BODIES = [
 ]
 
 export const NYX_SPACE = [
-  // ── Jump points (RSI Starmap / in-game) ───────────────────────────────────
-  { name: 'Pyro Gateway (Nyx side)', kind: 'gate', note: 'Nyx ↔ Pyro — active jump gate accessible in PU (wiki jump table).' },
-  { name: 'Stanton Jump Point (Nyx side)', kind: 'gate', note: 'Nyx ↔ Stanton — large bidirectional JP accessible in PU (wiki Nyx system).' },
+  // ── Jump gates (in-game names per SC Trade Tools) ─────────────────────────
+  { name: 'Nyx-Pyro Jump Point', kind: 'gate', note: 'Nyx ↔ Pyro — active in PU (SC Trade Tools / in-game).' },
+  { name: 'Nyx-Stanton Jump Point', kind: 'gate', note: 'Nyx ↔ Stanton — active in PU (SC Trade Tools / in-game).' },
   { name: 'Castra Jump Point (Nyx)', kind: 'gate', note: 'Nyx ↔ Castra — RSI Starmap; not PU-accessible in current alpha.' },
   { name: 'Bremen Jump Point', kind: 'gate', note: 'Nyx ↔ Bremen — RSI Starmap; not PU-accessible in current alpha.' },
   { name: 'Odin Jump Point', kind: 'gate', note: 'Nyx ↔ Odin — RSI Starmap; not PU-accessible in current alpha.' },
@@ -536,11 +576,11 @@ export const NYX_SPACE = [
   // ── Asteroid belts ────────────────────────────────────────────────────────
   { name: 'Glaciem Ring (Nyx belt alpha)', kind: 'asteroid_belt', note: 'Dense inner belt; Delamar embedded here (Galactapedia).' },
   { name: 'Keeger Belt (Nyx belt beta)', kind: 'asteroid_belt', note: 'Outermost belt; suspected outlaw strongholds (Galactapedia).' },
-  // ── Stations & factions ───────────────────────────────────────────────────
+  // ── Keeger Belt stations (People's Alliance) ──────────────────────────────
+  { name: "People's Service Station Alpha", kind: 'station', note: "Keeger Belt — People's Alliance hub (SC Trade Tools)." },
+  { name: "People's Service Station Delta", kind: 'station', note: "Keeger Belt — People's Alliance hub (SC Trade Tools)." },
+  { name: "People's Service Station Lambda", kind: 'station', note: "Keeger Belt — People's Alliance hub (SC Trade Tools)." },
+  { name: "People's Service Station Theta", kind: 'station', note: "Keeger Belt — People's Alliance hub (SC Trade Tools)." },
+  // ── Other ─────────────────────────────────────────────────────────────────
   { name: 'Moraine settlements', kind: 'outpost', note: 'Smuggler faction sites scattered through the Glaciem Ring (wiki).' },
-  {
-    name: "People's service stations",
-    kind: 'station',
-    note: "Keeger Belt — former QV Planet Services hubs, now People's Alliance (Alpha 4.7+; wiki).",
-  },
 ]
