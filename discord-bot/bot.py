@@ -774,6 +774,7 @@ async def _run_health_server():
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", PORT).start()
     print(f"[health] HTTP server on port {PORT}")
+    await asyncio.Event().wait()  # keep runner alive; returning would GC it and close the port
 
 
 async def _run_bot():
