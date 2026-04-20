@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { apiUrl, getToken } from '../api'
 
 const CATEGORIES = [
-  { value: 'suggestion', label: '💡 Suggestion', hint: 'A feature or improvement you'd like to see' },
+  { value: 'suggestion', label: '💡 Suggestion', hint: "A feature or improvement you'd like to see" },
   { value: 'bug',        label: '🐛 Bug Report',  hint: 'Something broken or behaving wrong' },
   { value: 'other',      label: '💬 Other',        hint: 'Anything else — questions, praise, criticism' },
 ]
