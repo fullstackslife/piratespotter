@@ -159,9 +159,9 @@ export default function ReportCard({ report, onVote }) {
             <div className="text-[10px] font-bold uppercase tracking-wide text-[#484f58] mb-1.5">Hostiles</div>
             <ul className="text-xs text-[#c9d1d9] space-y-1">
               {attackers.map((a, i) => (
-                <li key={i} className="flex flex-wrap gap-x-2 gap-y-0.5">
+                <li key={i} className="flex flex-wrap gap-x-2 gap-y-0.5 break-all">
                   <span className="font-medium text-[#e6edf3]">{a.handle || '?'}</span>
-                  {a.ship && <span className="text-[#8b949e]">· {a.ship}</span>}
+                  {a.ship && <span className="text-[#8b949e] break-normal">· {a.ship}</span>}
                 </li>
               ))}
             </ul>
@@ -228,7 +228,7 @@ export default function ReportCard({ report, onVote }) {
         )}
 
         {report.notes && (
-          <p className="text-sm text-[#c9d1d9] mt-2 leading-relaxed border-t border-[#1e2730] pt-2">
+          <p className="text-sm text-[#c9d1d9] mt-2 leading-relaxed border-t border-[#1e2730] pt-2 break-words overflow-hidden">
             {report.notes}
           </p>
         )}
