@@ -97,28 +97,45 @@ async def type_autocomplete(interaction: discord.Interaction, current: str):
 
 # ── /setup ────────────────────────────────────────────────────────────────────
 
+NOTIFY_MODE_LABELS = {
+    "all":         "📢 All reports",
+    "bounty_only": "💰 Bounty reports only",
+    "thread":      "🧵 All reports + thread per incident",
+}
+
+
 @tree.command(name="setup", description="Configure PirateSpotters for this server (admin only)")
 @app_commands.describe(
     alerts="Channel where pirate alert embeds are posted",
     bounties="Channel for bounty board posts and claim/clear announcements",
+    notifications="What gets posted: all reports | bounty_only | thread (one thread per report)",
 )
+@app_commands.choices(notifications=[
+    app_commands.Choice(name="All reports (default)", value="all"),
+    app_commands.Choice(name="Bounty reports only", value="bounty_only"),
+    app_commands.Choice(name="All reports + thread per incident", value="thread"),
+])
 @app_commands.default_permissions(manage_guild=True)
 async def setup_command(
     interaction: discord.Interaction,
     alerts: discord.TextChannel | None = None,
     bounties: discord.TextChannel | None = None,
+    notifications: str | None = None,
 ):
     await interaction.response.defer(thinking=True, ephemeral=True)
 
-    if alerts is None and bounties is None:
+    if alerts is None and bounties is None and notifications is None:
         cfg = await _get_guild_config(interaction.guild_id)
         alert_ch = f"<#{cfg['alert_channel_id']}>" if cfg.get("alert_channel_id") else "_not set_"
         bounty_ch = f"<#{cfg['bounty_channel_id']}>" if cfg.get("bounty_channel_id") else "_not set_"
+        mode = NOTIFY_MODE_LABELS.get(cfg.get("notify_mode") or "all", "All reports")
         await interaction.followup.send(
             f"**PirateSpotters config for this server:**\n"
             f"📡 Alerts channel: {alert_ch}\n"
-            f"💰 Bounty channel: {bounty_ch}\n\n"
-            f"Use `/setup alerts:#channel` or `/setup bounties:#channel` to configure.",
+            f"💰 Bounty channel: {bounty_ch}\n"
+            f"🔔 Notifications: {mode}\n\n"
+            f"Use `/setup alerts:#channel`, `/setup bounties:#channel`, or "
+            f"`/setup notifications:` to configure.",
             ephemeral=True,
         )
         return
@@ -128,6 +145,8 @@ async def setup_command(
         payload["alert_channel_id"] = alerts.id
     if bounties:
         payload["bounty_channel_id"] = bounties.id
+    if notifications:
+        payload["notify_mode"] = notifications
 
     async with ClientSession() as session:
         try:
@@ -142,6 +161,8 @@ async def setup_command(
                         lines.append(f"📡 Alerts → {alerts.mention}")
                     if bounties:
                         lines.append(f"💰 Bounties → {bounties.mention}")
+                    if notifications:
+                        lines.append(f"🔔 Notifications → {NOTIFY_MODE_LABELS.get(notifications, notifications)}")
                     await interaction.followup.send("\n".join(lines), ephemeral=True)
                 else:
                     body = await resp.text()
@@ -655,26 +676,59 @@ async def poll_reports():
         cfg = await _get_guild_config(guild.id)
         alert_ch_id = cfg.get("alert_channel_id")
         bounty_ch_id = cfg.get("bounty_channel_id")
+        notify_mode = cfg.get("notify_mode") or "all"
+
+        # Resolve channels; fall back: if no alert channel, use bounty channel for alerts
+        alert_ch = guild.get_channel(int(alert_ch_id)) if alert_ch_id else None
+        bounty_ch = guild.get_channel(int(bounty_ch_id)) if bounty_ch_id else None
+        effective_alert_ch = alert_ch or bounty_ch  # always have somewhere to post
+
+        if not effective_alert_ch:
+            continue  # guild hasn't configured any channel yet
 
         for report in fresh:
             reporter = report.get("reporter_name") or "Anonymous"
-            embed = _build_embed(report, reporter)
+            has_bounty = report.get("bounty_auec", 0) > 0 and not report.get("bounty_cleared")
 
-            if alert_ch_id:
-                ch = guild.get_channel(int(alert_ch_id))
-                if ch and ch.permissions_for(guild.me).send_messages:
-                    try:
-                        await ch.send(embed=embed)
-                    except Exception as exc:
-                        print(f"[poller] alert send failed in {guild.name}: {exc}")
+            # Decide whether to post this report based on notify_mode
+            should_post = notify_mode != "bounty_only" or has_bounty
 
-            if bounty_ch_id and report.get("bounty_auec", 0) > 0 and not report.get("bounty_cleared"):
-                bch = guild.get_channel(int(bounty_ch_id))
-                if bch and bch.permissions_for(guild.me).send_messages:
-                    try:
-                        await bch.send(embed=_build_bounty_embed(report))
-                    except Exception as exc:
-                        print(f"[poller] bounty send failed in {guild.name}: {exc}")
+            if should_post and effective_alert_ch.permissions_for(guild.me).send_messages:
+                embed = _build_embed(report, reporter)
+                try:
+                    msg = await effective_alert_ch.send(embed=embed)
+                    # Thread mode: spin up a discussion thread per report
+                    if notify_mode == "thread" and hasattr(effective_alert_ch, "create_thread"):
+                        thread_name = f"☠ {report['location']} · {_short_id(report['id'])}"
+                        try:
+                            thread = await msg.create_thread(
+                                name=thread_name[:100],
+                                auto_archive_duration=1440,
+                            )
+                            threat = report.get("threat_level", "medium")
+                            threat_label = {"low": "🟡 Low", "medium": "🟠 Medium", "high": "🔴 High"}.get(threat, threat)
+                            attackers = report.get("attackers") or []
+                            handle_list = ", ".join(f"`{a['handle']}`" for a in attackers if a.get("handle")) or "Unknown"
+                            notes = report.get("notes", "")
+                            summary = (
+                                f"**System:** {report['system']}  |  **Type:** {report['pirate_type'].title()}  |  **Threat:** {threat_label}\n"
+                                f"**Hostiles:** {handle_list}\n"
+                            )
+                            if notes:
+                                summary += f"**Notes:** {notes[:400]}\n"
+                            summary += f"\nUse this thread to coordinate your response. `/claim` and `/cleared` announcements will post in <#{bounty_ch.id if bounty_ch else effective_alert_ch.id}>."
+                            await thread.send(summary)
+                        except Exception as exc:
+                            print(f"[poller] thread create failed in {guild.name}: {exc}")
+                except Exception as exc:
+                    print(f"[poller] alert send failed in {guild.name}: {exc}")
+
+            # Always post bounty embed to bounty channel (separate from the alert)
+            if has_bounty and bounty_ch and bounty_ch != effective_alert_ch and bounty_ch.permissions_for(guild.me).send_messages:
+                try:
+                    await bounty_ch.send(embed=_build_bounty_embed(report))
+                except Exception as exc:
+                    print(f"[poller] bounty send failed in {guild.name}: {exc}")
 
     for r in fresh:
         _posted_ids.add(r["id"])

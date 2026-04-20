@@ -150,6 +150,8 @@ class GuildConfig(Base):
     guild_id = Column(String, primary_key=True)
     alert_channel_id = Column(BigInteger, nullable=True)
     bounty_channel_id = Column(BigInteger, nullable=True)
+    # "all" = every report, "bounty_only" = only reports with bounties, "thread" = every report + Discord thread
+    notify_mode = Column(String, default="all")
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
@@ -157,6 +159,7 @@ class GuildConfig(Base):
             "guild_id": self.guild_id,
             "alert_channel_id": self.alert_channel_id,
             "bounty_channel_id": self.bounty_channel_id,
+            "notify_mode": self.notify_mode or "all",
         }
 
 
@@ -176,10 +179,28 @@ def _column_names(connection, table="reports"):
         return {r[0] for r in rows}
 
 
+def _column_names_for(connection, table: str) -> set:
+    if DATABASE_URL.startswith("sqlite"):
+        rows = connection.execute(text(f"PRAGMA table_info({table})")).fetchall()
+        return {r[1] for r in rows}
+    else:
+        rows = connection.execute(text("""
+            SELECT column_name FROM information_schema.columns WHERE table_name = :t
+        """), {"t": table}).fetchall()
+        return {r[0] for r in rows}
+
+
 def migrate_db():
     """Add columns for existing DBs (create_all does not alter tables)."""
     with engine.begin() as conn:
         existing = _column_names(conn)
+        # guild_configs migrations
+        gc_existing = _column_names_for(conn, "guild_configs")
+        if "notify_mode" not in gc_existing:
+            try:
+                conn.execute(text("ALTER TABLE guild_configs ADD COLUMN notify_mode VARCHAR DEFAULT 'all'"))
+            except Exception as e:
+                print(f"Warning: could not add notify_mode to guild_configs: {e}")
         additions = [
             ("reporter_name", "VARCHAR"),
             ("discord_user_id", "VARCHAR"),

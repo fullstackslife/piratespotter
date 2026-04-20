@@ -369,6 +369,7 @@ class AuthTokenRequest(BaseModel):
 class GuildConfigUpdate(BaseModel):
     alert_channel_id: Optional[int] = None
     bounty_channel_id: Optional[int] = None
+    notify_mode: Optional[Literal["all", "bounty_only", "thread"]] = None
 
 
 class BountyActionBody(BaseModel):
@@ -960,7 +961,7 @@ def get_guild_config(guild_id: str):
     cfg = db.query(GuildConfig).filter(GuildConfig.guild_id == guild_id).first()
     db.close()
     if not cfg:
-        return {"guild_id": guild_id, "alert_channel_id": None, "bounty_channel_id": None}
+        return {"guild_id": guild_id, "alert_channel_id": None, "bounty_channel_id": None, "notify_mode": "all"}
     return cfg.to_dict()
 
 
@@ -975,6 +976,8 @@ def put_guild_config(guild_id: str, body: GuildConfigUpdate):
         cfg.alert_channel_id = body.alert_channel_id
     if body.bounty_channel_id is not None:
         cfg.bounty_channel_id = body.bounty_channel_id
+    if body.notify_mode is not None:
+        cfg.notify_mode = body.notify_mode
     cfg.updated_at = datetime.now(timezone.utc)
     db.commit()
     result = cfg.to_dict()
