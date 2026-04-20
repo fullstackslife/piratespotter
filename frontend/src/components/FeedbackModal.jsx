@@ -126,9 +126,9 @@ export default function FeedbackModal({ onClose, currentPage, user }) {
                 rows={5}
                 required
                 placeholder={
-                  category === 'suggestion' ? 'What feature or change would make this more useful for you?' :
-                  category === 'bug' ? 'What happened? What were you trying to do? Any steps to reproduce?' :
-                  'What's on your mind?'
+                  category === 'suggestion' ? "What feature or change would make this more useful for you?" :
+                  category === 'bug' ? "What happened? What were you trying to do? Any steps to reproduce?" :
+                  "What's on your mind?"
                 }
                 style={{
                   width: '100%', background: '#080b10', border: '1px solid #21262d', borderRadius: 7,
