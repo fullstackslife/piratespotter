@@ -725,6 +725,22 @@ def admin_cleanup_spam(secret: str = Query(...)):
     return {"removed_reports": removed_count, "message": f"Cleaned up {removed_count} inappropriate reports"}
 
 
+@app.get("/api/config")
+def public_config():
+    """Public config — safe to expose to any client."""
+    invite_url = None
+    if DISCORD_CLIENT_ID:
+        # Permissions: VIEW_CHANNEL(1024) + SEND_MESSAGES(2048) + EMBED_LINKS(16384)
+        #              + ATTACH_FILES(32768) + READ_MESSAGE_HISTORY(65536) = 117760
+        invite_url = (
+            f"https://discord.com/api/oauth2/authorize"
+            f"?client_id={DISCORD_CLIENT_ID}"
+            f"&permissions=117760"
+            f"&scope=bot%20applications.commands"
+        )
+    return {"bot_invite_url": invite_url}
+
+
 @app.get("/api/locations")
 def list_locations(system: Optional[str] = Query(None)):
     """Return known location names, optionally filtered by system."""
