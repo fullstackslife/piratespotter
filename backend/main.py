@@ -281,17 +281,21 @@ class AttackerIn(BaseModel):
         return s or None
 
 
+_VALID_PIRATE_TYPES = frozenset({"ambush", "blockade", "patrol", "org", "griefer", "other"})
+_VALID_THREAT_LEVELS = frozenset({"low", "medium", "high"})
+
+
 class ReportCreate(BaseModel):
-    location: str
+    location: str = Field(..., min_length=3, max_length=200)
     system: str = "Stanton"
     pirate_type: str = "other"
     threat_level: str = "medium"
-    ship: Optional[str] = None
-    notes: Optional[str] = None
-    reporter_name: Optional[str] = Field(None, max_length=64)
+    ship: Optional[str] = Field(None, max_length=64)
+    notes: Optional[str] = Field(None, max_length=2000)
+    reporter_name: Optional[str] = Field(None, max_length=32)
     attackers: list[AttackerIn] = Field(default_factory=list)
     bounty_auec: int = Field(0, ge=0, le=99_999_999)
-    bounty_message: Optional[str] = Field(None, max_length=2000)
+    bounty_message: Optional[str] = Field(None, max_length=500)
 
     @field_validator("reporter_name")
     @classmethod
@@ -302,8 +306,24 @@ class ReportCreate(BaseModel):
         if not s:
             return None
         if not HANDLE_RE.match(s):
-            raise ValueError("Reporter name is invalid (max 64 chars, no control characters)")
+            raise ValueError("Reporter name is invalid (max 32 chars, no control characters)")
         return s
+
+    @field_validator("pirate_type")
+    @classmethod
+    def validate_pirate_type(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in _VALID_PIRATE_TYPES:
+            return "other"
+        return v
+
+    @field_validator("threat_level")
+    @classmethod
+    def validate_threat_level(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in _VALID_THREAT_LEVELS:
+            return "medium"
+        return v
 
     @field_validator("location")
     @classmethod
@@ -388,44 +408,54 @@ async def get_user_identifier(request: Request, credentials: Optional[HTTPAuthor
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
+_PROFANITY = frozenset({
+    'fuck', 'fucking', 'fucker', 'fck', 'f u c k',
+    'shit', 'shitty', 'bitch', 'bastard', 'asshole', 'cunt', 'dick', 'pussy',
+    'nigger', 'nigga', 'chink', 'gook', 'kike', 'spic', 'wetback',
+    'faggot', 'tranny', 'retard', 'cuck',
+})
+
+_SPAM_PHRASES = frozenset({
+    'spam', 'fake news', 'buy now', 'click here',
+    'free money', 'make money fast', 'work from home',
+})
+
+
+def _has_excessive_repetition(text: str) -> bool:
+    """True if any single character makes up >45% of the string (length > 6)."""
+    if len(text) <= 6:
+        return False
+    lo = text.lower()
+    return any(lo.count(c) > len(lo) * 0.45 for c in set(lo) if c.isalpha())
+
+
+def is_clean_handle(text: Optional[str]) -> bool:
+    """Profanity / spam check for short text fields (handles, reporter names, ship names).
+    Does NOT require minimum word count — single words are fine."""
+    if not text:
+        return True
+    lo = text.lower()
+    for term in _PROFANITY:
+        if term in lo:
+            return False
+    if _has_excessive_repetition(text):
+        return False
+    return True
+
+
 def is_appropriate_content(content: Optional[str]) -> bool:
-    """Basic content moderation filter"""
+    """Content moderation for longer free-text fields (notes, bounty messages)."""
     if not content:
         return True
-    
-    content_lower = content.lower()
-    
-    # Basic inappropriate word filter
-    inappropriate_terms = {
-        # Profanity and slurs
-        'fuck', 'fucking', 'fucker', 'shit', 'shitty', 'bitch', 'bastard', 'asshole', 'cunt', 'dick', 'pussy',
-        'nigger', 'nigga', 'chink', 'gook', 'kike', 'spic', 'wetback', 'faggot', 'tranny', 'retard', 'cuck',
-        # Spam patterns
-        'spam', 'fake news', 'buy now', 'click here', 'free money', 'make money fast', 'work from home',
-        # Excessive repetition
-        'aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd',
-        'eeeeeeeeeeeeeeee', 'ffffffffffffffff', 'gggggggggggggggg', 'hhhhhhhhhhhhhhhh',
-    }
-    
-    for term in inappropriate_terms:
-        if term in content_lower:
+    lo = content.lower()
+    for term in _PROFANITY | _SPAM_PHRASES:
+        if term in lo:
             return False
-    
-    # Check for excessive special characters / spam patterns
-    special_char_count = sum(1 for c in content if not c.isalnum() and c not in ' .,!?-')
-    if special_char_count > len(content) * 0.3:  # More than 30% special chars
+    special_char_count = sum(1 for c in content if not c.isalnum() and c not in ' .,!?-_:()/\\#@\'\"')
+    if special_char_count > len(content) * 0.35:
         return False
-    
-    # Check for excessive repetition of the same character
-    for char in set(content_lower):
-        if content_lower.count(char) > len(content) * 0.4:  # More than 40% same character
-            return False
-    
-    # Check for very short content with no real information
-    words = content.split()
-    if len(words) < 3 and len(content) < 20:
+    if _has_excessive_repetition(content):
         return False
-    
     return True
 
 
@@ -808,7 +838,14 @@ def create_report(body: ReportCreate, request: Request):
     if len(body.attackers) > 12:
         raise HTTPException(status_code=400, detail="At most 12 attackers per report.")
 
-    # Content moderation check
+    # Content moderation: handles, reporter name, location, free text
+    if not is_clean_handle(body.reporter_name):
+        raise HTTPException(status_code=400, detail="Reporter name contains inappropriate content.")
+    if not is_clean_handle(body.location):
+        raise HTTPException(status_code=400, detail="Location contains inappropriate content.")
+    for atk in body.attackers:
+        if not is_clean_handle(atk.handle) or not is_clean_handle(atk.ship):
+            raise HTTPException(status_code=400, detail="Attacker name/ship contains inappropriate content.")
     if not is_appropriate_content(body.notes) or not is_appropriate_content(body.bounty_message):
         raise HTTPException(status_code=400, detail="Report contains inappropriate content and cannot be submitted.")
 

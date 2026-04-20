@@ -222,7 +222,7 @@ class ReportModal(discord.ui.Modal, title="☠ Report Pirate Activity"):
                 bounty_auec = 0
             bounty_message = b_parts[1].strip()[:500] if len(b_parts) > 1 else None
 
-        reporter = interaction.user.display_name[:64]
+        reporter = interaction.user.display_name[:32]
         payload = {
             "location": self.location.value.strip()[:200],
             "system": system,

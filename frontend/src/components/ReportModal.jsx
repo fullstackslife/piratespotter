@@ -265,7 +265,7 @@ export default function ReportModal({ onClose, onSubmit, user }) {
               placeholder="Handle shown with this report"
               value={form.reporter_name}
               onChange={e => set('reporter_name', e.target.value)}
-              maxLength={64}
+              maxLength={32}
               className={INPUT}
             />
           </div>
