@@ -13,10 +13,11 @@ No CHANNEL_ID or BOUNTY_CHANNEL_ID env vars needed.
 import asyncio
 import os
 import re
+from datetime import datetime, timezone, timedelta
 from aiohttp import web, ClientSession, ClientError, ClientTimeout
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
 BOT_SECRET = os.environ.get("BOT_SECRET", "")
@@ -258,6 +259,7 @@ async def _submit_report(interaction: discord.Interaction, payload: dict, bounty
                     sid = _short_id(report["id"])
                     reporter = payload["reporter_name"]
                     embed = _build_embed(report, reporter)
+                    _posted_ids.add(report["id"])  # prevent poller from double-posting
                     await interaction.followup.send(
                         f"Report filed! `ID: {sid}` · <{SITE_URL}>",
                         ephemeral=True,
@@ -615,6 +617,81 @@ def _build_bounty_embed(report: dict) -> discord.Embed:
     return embed
 
 
+# ── Live feed poller ──────────────────────────────────────────────────────────
+# Tracks IDs already posted so bot-submitted reports (posted immediately) aren't
+# duplicated when the poller catches up.
+_posted_ids: set[str] = set()
+_poll_since: datetime = datetime.now(timezone.utc)
+
+
+@tasks.loop(seconds=60)
+async def poll_reports():
+    global _poll_since
+    since_str = _poll_since.strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now(timezone.utc)
+
+    async with ClientSession() as session:
+        try:
+            async with session.get(
+                f"{BACKEND_URL}/api/reports",
+                params={"since": since_str, "limit": "50"},
+                timeout=ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    return
+                new_reports = await resp.json()
+        except Exception as exc:
+            print(f"[poller] fetch failed: {exc}")
+            return
+
+    _poll_since = now
+
+    fresh = [r for r in new_reports if r["id"] not in _posted_ids]
+    if not fresh:
+        return
+
+    print(f"[poller] {len(fresh)} new report(s) to broadcast")
+
+    for guild in bot.guilds:
+        cfg = await _get_guild_config(guild.id)
+        alert_ch_id = cfg.get("alert_channel_id")
+        bounty_ch_id = cfg.get("bounty_channel_id")
+
+        for report in fresh:
+            reporter = report.get("reporter_name") or "Anonymous"
+            embed = _build_embed(report, reporter)
+
+            if alert_ch_id:
+                ch = guild.get_channel(int(alert_ch_id))
+                if ch and ch.permissions_for(guild.me).send_messages:
+                    try:
+                        await ch.send(embed=embed)
+                    except Exception as exc:
+                        print(f"[poller] alert send failed in {guild.name}: {exc}")
+
+            if bounty_ch_id and report.get("bounty_auec", 0) > 0 and not report.get("bounty_cleared"):
+                bch = guild.get_channel(int(bounty_ch_id))
+                if bch and bch.permissions_for(guild.me).send_messages:
+                    try:
+                        await bch.send(embed=_build_bounty_embed(report))
+                    except Exception as exc:
+                        print(f"[poller] bounty send failed in {guild.name}: {exc}")
+
+    for r in fresh:
+        _posted_ids.add(r["id"])
+
+    # Trim the set to avoid unbounded growth — keep last 2000 IDs
+    if len(_posted_ids) > 2000:
+        overflow = len(_posted_ids) - 2000
+        for old_id in list(_posted_ids)[:overflow]:
+            _posted_ids.discard(old_id)
+
+
+@poll_reports.before_loop
+async def before_poll():
+    await bot.wait_until_ready()
+
+
 # ── Events ─────────────────────────────────────────────────────────────────────
 
 @bot.event
@@ -622,6 +699,7 @@ async def on_ready():
     await tree.sync()  # global sync (up to 1 hour to propagate)
     for guild in bot.guilds:
         await tree.sync(guild=guild)  # instant per-guild sync
+    poll_reports.start()
     print(f"PirateSpotters Bot ready — {bot.user} (ID: {bot.user.id}), synced to {len(bot.guilds)} guild(s)")
 
 
