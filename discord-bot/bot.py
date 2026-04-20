@@ -4,7 +4,6 @@ PirateSpotters Discord Bot
 Env vars required:
   DISCORD_TOKEN  — bot token from Discord Developer Portal
   BACKEND_URL    — e.g. https://piratespotter-api.onrender.com
-  PORT           — set automatically by Render
 
 Channel configuration is done per-server with /setup inside Discord.
 No CHANNEL_ID or BOUNTY_CHANNEL_ID env vars needed.
@@ -13,8 +12,8 @@ No CHANNEL_ID or BOUNTY_CHANNEL_ID env vars needed.
 import asyncio
 import os
 import re
-from datetime import datetime, timezone, timedelta
-from aiohttp import web, ClientSession, ClientError, ClientTimeout
+from datetime import datetime, timezone
+from aiohttp import ClientSession, ClientError, ClientTimeout
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -22,7 +21,6 @@ from discord.ext import commands, tasks
 BACKEND_URL = os.environ["BACKEND_URL"].rstrip("/")
 BOT_SECRET = os.environ.get("BOT_SECRET", "")
 SITE_URL = os.environ.get("SITE_URL", "https://piratespotter-frontend.onrender.com")
-PORT = int(os.environ.get("PORT", "8080"))
 
 # 12 hex chars = 16^12 ≈ 281 trillion combinations; collision is impossible at any realistic scale.
 # _find_by_short_id also enforces uniqueness at runtime with a hard error.
@@ -692,6 +690,13 @@ async def before_poll():
     await bot.wait_until_ready()
 
 
+@poll_reports.error
+async def poll_reports_error(error: Exception):
+    print(f"[poller] crashed with {type(error).__name__}: {error} — restarting in 30s")
+    await asyncio.sleep(30)
+    poll_reports.restart()
+
+
 # ── Events ─────────────────────────────────────────────────────────────────────
 
 @bot.event
@@ -699,8 +704,22 @@ async def on_ready():
     await tree.sync()  # global sync (up to 1 hour to propagate)
     for guild in bot.guilds:
         await tree.sync(guild=guild)  # instant per-guild sync
-    poll_reports.start()
+    if not poll_reports.is_running():
+        poll_reports.start()
     print(f"PirateSpotters Bot ready — {bot.user} (ID: {bot.user.id}), synced to {len(bot.guilds)} guild(s)")
+
+
+@bot.event
+async def on_disconnect():
+    print("[bot] disconnected from Discord — discord.py will auto-reconnect")
+
+
+@bot.event
+async def on_resumed():
+    print("[bot] session resumed")
+    if not poll_reports.is_running():
+        poll_reports.start()
+        print("[bot] restarted poller after resume")
 
 
 @bot.event
@@ -740,28 +759,25 @@ async def on_guild_join(guild: discord.Guild):
             break
 
 
-# ── Health server ──────────────────────────────────────────────────────────────
-
-async def health(request):
-    return web.Response(text="ok")
-
-
-async def run_http():
-    app = web.Application()
-    app.router.add_get("/", health)
-    app.router.add_get("/health", health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
-    await site.start()
-    print(f"Health server listening on port {PORT}")
-
-
 async def main():
-    await asyncio.gather(
-        run_http(),
-        bot.start(os.environ["DISCORD_TOKEN"]),
-    )
+    token = os.environ["DISCORD_TOKEN"]
+    backoff = 5
+    while True:
+        try:
+            await bot.start(token)
+        except discord.errors.LoginFailure:
+            print("[bot] FATAL: invalid Discord token — check DISCORD_TOKEN env var")
+            raise
+        except Exception as exc:
+            print(f"[bot] connection lost ({type(exc).__name__}: {exc}) — reconnecting in {backoff}s")
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+            await bot.close()
+            # Reset the bot client state so it can reconnect cleanly
+            bot._closed = False
+            bot._ready.clear()
+        else:
+            break
 
 
 asyncio.run(main())

@@ -20,6 +20,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from database import SessionLocal, Report, GuildConfig, VoteTracking, BannedUser, init_db
+from sc_locations import infer_system
 
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
@@ -694,6 +695,16 @@ def admin_cleanup_spam(secret: str = Query(...)):
     return {"removed_reports": removed_count, "message": f"Cleaned up {removed_count} inappropriate reports"}
 
 
+@app.get("/api/locations")
+def list_locations(system: Optional[str] = Query(None)):
+    """Return known location names, optionally filtered by system."""
+    from sc_locations import STANTON_LOCATIONS, PYRO_LOCATIONS, NYX_LOCATIONS
+    mapping = {"Stanton": STANTON_LOCATIONS, "Pyro": PYRO_LOCATIONS, "Nyx": NYX_LOCATIONS}
+    if system and system in mapping:
+        return sorted(mapping[system])
+    return {s: sorted(locs) for s, locs in mapping.items()}
+
+
 @app.get("/api/reports")
 def get_reports(
     system: Optional[str] = Query(None),
@@ -785,6 +796,15 @@ def create_report(body: ReportCreate, request: Request):
             status_code=400,
             detail=f"Invalid system '{body.system}'. Use one of: {', '.join(sorted(VALID_SYSTEMS))}.",
         )
+
+    # Validate location belongs to the stated system (if it's a known location)
+    known_system = infer_system(body.location)
+    if known_system and known_system != body.system:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{body.location}' is a {known_system} location — you selected {body.system}. Please choose the correct system.",
+        )
+
     if len(body.attackers) > 12:
         raise HTTPException(status_code=400, detail="At most 12 attackers per report.")
 
