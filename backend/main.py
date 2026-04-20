@@ -295,7 +295,7 @@ class ReportCreate(BaseModel):
     reporter_name: Optional[str] = Field(None, max_length=32)
     attackers: list[AttackerIn] = Field(default_factory=list)
     bounty_auec: int = Field(0, ge=0, le=99_999_999)
-    bounty_message: Optional[str] = Field(None, max_length=500)
+    bounty_message: Optional[str] = Field(None, max_length=300)
 
     @field_validator("reporter_name")
     @classmethod
