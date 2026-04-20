@@ -308,6 +308,7 @@ class ReportCreate(BaseModel):
     attackers: list[AttackerIn] = Field(default_factory=list)
     bounty_auec: int = Field(0, ge=0, le=99_999_999)
     bounty_message: Optional[str] = Field(None, max_length=300)
+    shard_id: Optional[str] = Field(None, max_length=120)
 
     @field_validator("reporter_name")
     @classmethod
@@ -900,6 +901,7 @@ def create_report(body: ReportCreate, request: Request):
         attackers_json=attackers_json,
         bounty_auec=body.bounty_auec,
         bounty_message=body.bounty_message.strip() if body.bounty_message else None,
+        shard_id=body.shard_id.strip()[:120] if body.shard_id else None,
     )
     db.add(report)
     db.commit()

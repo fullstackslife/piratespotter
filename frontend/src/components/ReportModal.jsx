@@ -66,6 +66,7 @@ export default function ReportModal({ onClose, onSubmit, user }) {
     reporter_name: user?.username ?? '',
     bounty_auec: '',
     bounty_message: '',
+    shard_id: '',
   })
   const [attackers, setAttackers] = useState([emptyAttacker(), emptyAttacker()])
   const [submitting, setSubmitting] = useState(false)
@@ -167,6 +168,7 @@ export default function ReportModal({ onClose, onSubmit, user }) {
       attackers: attackerPayload,
       bounty_auec,
       bounty_message: form.bounty_message.trim().slice(0, BOUNTY_MSG_MAX) || null,
+      shard_id: form.shard_id.trim().slice(0, 120) || null,
     }
 
     setSubmitting(true)
@@ -354,6 +356,31 @@ export default function ReportModal({ onClose, onSubmit, user }) {
                   rows={3} maxLength={NOTES_MAX}
                   className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-sm text-[#c9d1d9] placeholder-[#484f58] focus:outline-none focus:border-red-700 resize-none" />
                 <p className="text-[10px] text-[#484f58] mt-0.5">Keep it factual. Hate speech or spam will be rejected.</p>
+              </div>
+
+              {/* Shard ID */}
+              <div className="border border-[#21262d] rounded-lg p-3 bg-[#090d12]">
+                <div className="flex items-center gap-2 mb-1">
+                  <label className="text-xs font-bold text-[#7dcfff] uppercase tracking-wide">Shard ID</label>
+                  <span className="text-[10px] text-[#484f58]">optional — helps hunters verify they are on the same server</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. pub-uselb-sc-alpha-470-1161709..."
+                  value={form.shard_id}
+                  onChange={e => set('shard_id', e.target.value.slice(0, 120))}
+                  maxLength={120}
+                  className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-xs text-[#c9d1d9] placeholder-[#484f58] font-mono focus:outline-none focus:border-[#7dcfff]" />
+                <div className="mt-2 rounded bg-[#0d1117] border border-[#21262d] p-2.5 text-[10px] text-[#8b949e] leading-relaxed">
+                  <span className="text-[#7dcfff] font-bold">How to get your Shard ID:</span>
+                  <ol className="mt-1 space-y-0.5 list-decimal list-inside">
+                    <li>Press <kbd className="bg-[#21262d] text-[#c9d1d9] px-1 py-0.5 rounded text-[9px]">~</kbd> to open the console</li>
+                    <li>Type <code className="bg-[#21262d] text-amber-300 px-1 py-0.5 rounded">r_displayinfo 1</code> and press Enter</li>
+                    <li>Look at the top-right overlay — copy the <strong className="text-[#c9d1d9]">Server:</strong> line</li>
+                    <li>Type <code className="bg-[#21262d] text-amber-300 px-1 py-0.5 rounded">r_displayinfo 0</code> to hide the overlay</li>
+                  </ol>
+                  <p className="mt-1.5 text-[#484f58]">The server string also shows your region — <span className="text-[#c9d1d9]">uselb</span> = US East, <span className="text-[#c9d1d9]">euclb</span> = EU, <span className="text-[#c9d1d9]">apse</span> = AP.</p>
+                </div>
               </div>
 
               {/* Bounty section */}

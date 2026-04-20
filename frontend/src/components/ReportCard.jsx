@@ -16,6 +16,43 @@ const PIRATE_ICONS = {
   other:    { icon: '❓', label: 'Unknown' },
 }
 
+const REGION_MAP = [
+  ['uselb', 'US East'], ['usclb', 'US Central'], ['uswlb', 'US West'],
+  ['euclb', 'EU'], ['eunlb', 'EU North'], ['apse', 'AP SE'],
+]
+function parseRegion(id) {
+  if (!id) return null
+  const lo = id.toLowerCase()
+  for (const [code, label] of REGION_MAP) {
+    if (lo.includes(code)) return label
+  }
+  return null
+}
+
+function ShardBadge({ shardId }) {
+  const [copied, setCopied] = useState(false)
+  const region = parseRegion(shardId)
+  function copy() {
+    navigator.clipboard?.writeText(shardId).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title="Click to copy shard ID"
+      className="flex items-center gap-1.5 text-[10px] font-mono bg-[#0d2030] border border-[#1e4060] text-[#7dcfff] px-2 py-0.5 rounded hover:bg-[#0f2a40] transition-colors"
+    >
+      <span>🖧</span>
+      {region && <span className="font-sans font-bold text-[#7dcfff]/80">{region}</span>}
+      <span className="text-[#7dcfff]/70 max-w-[140px] truncate">{shardId.slice(0, 28)}{shardId.length > 28 ? '…' : ''}</span>
+      <span className="text-[#484f58] font-sans">{copied ? '✓' : '⎘'}</span>
+    </button>
+  )
+}
+
 const OUTDATED_AFTER_MS = 60 * 60 * 1000
 
 function formatReportAge(iso) {
@@ -151,6 +188,9 @@ export default function ReportCard({ report, onVote }) {
             <span className="text-xs text-[#8b949e] flex items-center gap-1">
               <span className="text-[#484f58]">🚀</span>{report.ship}
             </span>
+          )}
+          {report.shard_id && (
+            <ShardBadge shardId={report.shard_id} />
           )}
         </div>
 

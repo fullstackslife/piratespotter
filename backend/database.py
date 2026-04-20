@@ -43,6 +43,7 @@ class Report(Base):
     bounty_claimed_at = Column(DateTime, nullable=True)
     bounty_cleared = Column(Boolean, default=False)
     bounty_cleared_at = Column(DateTime, nullable=True)
+    shard_id = Column(String, nullable=True)  # e.g. pub-uselb-sc-alpha-470-...
 
     def attackers_list(self):
         out = []
@@ -91,6 +92,7 @@ class Report(Base):
             "bounty_claimed_at": _iso(self.bounty_claimed_at),
             "bounty_cleared": bool(self.bounty_cleared),
             "bounty_cleared_at": _iso(self.bounty_cleared_at),
+            "shard_id": self.shard_id,
         }
 
 
@@ -211,6 +213,7 @@ def migrate_db():
             ("bounty_claimed_at", "TIMESTAMP"),
             ("bounty_cleared", "BOOLEAN DEFAULT FALSE"),
             ("bounty_cleared_at", "TIMESTAMP"),
+            ("shard_id", "VARCHAR"),
         ]
         for col, typ in additions:
             if col not in existing:

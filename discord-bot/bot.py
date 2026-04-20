@@ -200,6 +200,12 @@ class ReportModal(discord.ui.Modal, title="☠ Report Pirate Activity"):
         style=discord.TextStyle.paragraph,
         max_length=1000,
     )
+    shard = discord.ui.TextInput(
+        label="Shard ID (optional)",
+        placeholder="r_displayinfo 1 in console → copy the Server: line",
+        required=False,
+        max_length=120,
+    )
     bounty = discord.ui.TextInput(
         label="Bounty (optional)  —  amount in aUEC | terms",
         placeholder="500000 | Kill on sight, screenshot proof required",
