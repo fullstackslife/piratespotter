@@ -218,9 +218,13 @@ export default function HuntingGuide() {
           </Step>
           <Divider />
           <Step n={5} title="Verify the shard match">
-            Confirm you are on the same shard by flying to the victim's position or asking
-            them to fire a flare. If you can see each other, you are in. If not, repeat
-            the logout cycle — it occasionally takes two attempts.
+            Confirm you are on the same shard: open the console with <strong style={{ color: '#fff' }}>~</strong>,
+            type <strong style={{ color: '#7dcfff' }}>r_displayinfo 1</strong>, and check the{' '}
+            <strong style={{ color: '#fff' }}>Server:</strong> line. It should match the shard ID
+            on the report card (if provided). You can also fly to the victim's position or ask them
+            to fire a flare. If you can see each other, you are in. If not, repeat the logout
+            cycle — it occasionally takes two attempts. Type <strong style={{ color: '#7dcfff' }}>r_displayinfo 0</strong> to
+            hide the overlay when done.
           </Step>
           <Divider />
           <Step n={6} title="Move to the incident location">
@@ -277,7 +281,7 @@ export default function HuntingGuide() {
           {[
             {
               q: 'How do I know if the pirate is actually on my shard?',
-              a: `You can't — Star Citizen doesn't expose shard IDs or population lists to players. The game can spin up hundreds of simultaneous shards based on server load, and there is currently no in-game tool or third-party method to check which shard a specific player is on. The server-hop technique (party + leader logout) is the only reliable way to land in the same instance as someone you know is already online. If you arrive at the location and the pirates are gone, they may have logged off, moved on, or you ended up on a different shard — in which case repeat the cycle with a fresh victim lead.`,
+              a: `You can check using the in-game console command r_displayinfo 1. Open the console with ~ (tilde), type r_displayinfo 1, and look at the "Server:" line in the debug overlay — it shows your current shard ID (e.g. pub-uselb-sc-alpha-470-...). Type r_displayinfo 0 to hide the overlay. When reporters include their shard ID in a report (look for the blue badge on the report card), you can compare it to yours before committing to a server hop. If the IDs match — you're already in! If they don't match, use the party + leader logout technique to hop into the victim's shard. Even without a shard ID on the report, the server-hop method is the only reliable way to land in the same instance as someone you know is online.`,
             },
             {
               q: 'What if the victim has already logged off by the time I respond?',

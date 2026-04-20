@@ -262,6 +262,7 @@ class ReportModal(discord.ui.Modal, title="☠ Report Pirate Activity"):
             "attackers": attacker_list,
             "bounty_auec": max(0, bounty_auec),
             "bounty_message": bounty_message,
+            "shard_id": self.shard.value.strip()[:120] or None,
         }
 
         await _submit_report(interaction, payload, bounty_auec)
@@ -615,6 +616,9 @@ def _build_embed(report: dict, reporter: str) -> discord.Embed:
 
     if report.get("notes"):
         embed.add_field(name="Notes", value=report["notes"][:500], inline=False)
+
+    if report.get("shard_id"):
+        embed.add_field(name="Shard", value=f"`{report['shard_id'][:80]}`", inline=False)
 
     if report.get("bounty_auec", 0) > 0:
         embed.add_field(name="Bounty", value=f"{report['bounty_auec']:,} aUEC (honor system)", inline=False)
