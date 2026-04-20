@@ -244,6 +244,10 @@ class ReportCreate(BaseModel):
         s = v.strip()
         if not s:
             raise ValueError("Location is required")
+        if len(s) < 3:
+            raise ValueError("Location must be at least 3 characters")
+        if len(set(s.lower())) < 2:
+            raise ValueError("Location appears to be spam")
         return s
 
 

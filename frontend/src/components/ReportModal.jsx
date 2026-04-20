@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { authFetch } from '../api'
 import { REPORT_SYSTEM_OPTIONS } from '../scSystems'
-import { searchLocations } from '../locationSearch'
+import { searchLocations, isKnownLocation } from '../locationSearch'
 
 const PIRATE_TYPES = ['ambush', 'blockade', 'patrol', 'org', 'griefer', 'other']
 const THREAT_LEVELS = ['low', 'medium', 'high']
@@ -42,17 +42,26 @@ export default function ReportModal({ onClose, onSubmit, user }) {
 
   function onLocationChange(val) {
     set('location', val)
-    const results = searchLocations(val)
+    const results = searchLocations(val, form.system)
     setSuggestions(results)
     setShowSuggestions(results.length > 0)
   }
 
   function selectSuggestion(loc) {
-    set('location', loc.name)
-    set('system', loc.system)
+    setForm(f => ({ ...f, location: loc.name, system: loc.system }))
     setSuggestions([])
     setShowSuggestions(false)
     locationRef.current?.blur()
+  }
+
+  function onSystemChange(s) {
+    set('system', s)
+    // re-filter suggestions for new system
+    if (form.location.length >= 2) {
+      const results = searchLocations(form.location, s)
+      setSuggestions(results)
+      setShowSuggestions(results.length > 0)
+    }
   }
 
   function setAttacker(i, field, val) {
@@ -73,7 +82,13 @@ export default function ReportModal({ onClose, onSubmit, user }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.location.trim()) { setError('Location is required'); return }
+    const loc = form.location.trim()
+    if (!loc) { setError('Location is required'); return }
+    if (loc.length < 3) { setError('Location is too short — pick from the autocomplete list.'); return }
+    if (!isKnownLocation(loc, form.system)) {
+      setError(`"${loc}" is not a known ${form.system} location. Pick from the list.`)
+      return
+    }
 
     const bountyNum = parseInt(String(form.bounty_auec).replace(/,/g, ''), 10)
     const bounty_auec = Number.isFinite(bountyNum) && bountyNum > 0 ? Math.min(bountyNum, 99_999_999) : 0
@@ -199,7 +214,7 @@ export default function ReportModal({ onClose, onSubmit, user }) {
                 <button
                   type="button"
                   key={s}
-                  onClick={() => set('system', s)}
+                  onClick={() => onSystemChange(s)}
                   className={`${pillBase} ${form.system === s ? 'border-blue-600 bg-blue-950 text-blue-300' : pillInactive}`}
                 >
                   {s}

@@ -30,8 +30,15 @@ export const ALL_LOCATIONS = [
   ...flattenSpace(NYX_SPACE, 'Nyx'),
 ]
 
-export function searchLocations(query, limit = 8) {
+export function searchLocations(query, system = null, limit = 8) {
   if (!query || query.length < 2) return []
   const q = query.toLowerCase()
-  return ALL_LOCATIONS.filter(l => l.name.toLowerCase().includes(q)).slice(0, limit)
+  return ALL_LOCATIONS
+    .filter(l => (!system || l.system === system) && l.name.toLowerCase().includes(q))
+    .slice(0, limit)
+}
+
+export function isKnownLocation(name, system = null) {
+  const n = name.trim().toLowerCase()
+  return ALL_LOCATIONS.some(l => l.name.toLowerCase() === n && (!system || l.system === system))
 }
