@@ -19,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from database import SessionLocal, Report, GuildConfig, VoteTracking, BannedUser, init_db
+from database import SessionLocal, Report, GuildConfig, VoteTracking, BannedUser, Feedback, init_db
 from sc_locations import infer_system
 
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
@@ -135,6 +135,18 @@ def auth_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
         return {"id": payload["sub"], "username": payload.get("username"), "avatar": payload.get("avatar")}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+
+def _optional_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """Return JWT payload if a valid token is present, None otherwise."""
+    if not credentials:
+        return None
+    try:
+        return jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
 
 
 # ── Admin ──────────────────────────────────────────────────────────────────────
@@ -336,6 +348,13 @@ class ReportCreate(BaseModel):
         if len(set(s.lower())) < 2:
             raise ValueError("Location appears to be spam")
         return s
+
+
+class FeedbackCreate(BaseModel):
+    category: Literal["suggestion", "bug", "other"] = "other"
+    message: str = Field(..., min_length=5, max_length=2000)
+    contact: Optional[str] = Field(None, max_length=120)
+    page: Optional[str] = Field(None, max_length=64)
 
 
 class VoteRequest(BaseModel):
@@ -961,6 +980,49 @@ def put_guild_config(guild_id: str, body: GuildConfigUpdate):
     result = cfg.to_dict()
     db.close()
     return result
+
+
+@app.post("/api/feedback", status_code=201)
+@limiter.limit("5/minute")
+def submit_feedback(request: Request, body: FeedbackCreate, user=Depends(_optional_user)):
+    if not body.message or not body.message.strip():
+        raise HTTPException(status_code=400, detail="Message is required.")
+    db = SessionLocal()
+    fb = Feedback(
+        category=body.category,
+        message=body.message.strip()[:2000],
+        contact=(body.contact or "").strip()[:120] or None,
+        page=(body.page or "").strip()[:64] or None,
+        discord_user_id=user["sub"] if user else None,
+        discord_username=user.get("username") if user else None,
+    )
+    db.add(fb)
+    db.commit()
+    result = fb.to_dict()
+    db.close()
+    return result
+
+
+@app.get("/api/admin/feedback")
+def admin_feedback(admin=Depends(_require_admin)):
+    db = SessionLocal()
+    rows = db.query(Feedback).order_by(Feedback.created_at.desc()).limit(500).all()
+    result = [r.to_dict() for r in rows]
+    db.close()
+    return result
+
+
+@app.delete("/api/admin/feedback/{feedback_id}")
+def admin_delete_feedback(feedback_id: int, admin=Depends(_require_admin)):
+    db = SessionLocal()
+    fb = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not fb:
+        db.close()
+        raise HTTPException(status_code=404, detail="Not found")
+    db.delete(fb)
+    db.commit()
+    db.close()
+    return {"ok": True}
 
 
 @app.post("/api/reports/{report_id}/vote")

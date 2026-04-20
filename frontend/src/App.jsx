@@ -5,12 +5,17 @@ import MapView from './components/MapView'
 import Sidebar from './components/Sidebar'
 import BotGuide from './components/BotGuide'
 import HuntingGuide from './components/HuntingGuide'
+import FeedbackModal from './components/FeedbackModal'
 import AdminPanel, { isAdmin } from './components/AdminPanel'
 import { getToken, setToken, clearToken, decodeToken, apiUrl } from './api'
 
 export default function App() {
   const [tab, setTab] = useState('feed')
   const [showModal, setShowModal] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [devBannerDismissed, setDevBannerDismissed] = useState(
+    () => sessionStorage.getItem('devBannerDismissed') === '1'
+  )
   const [latestReport, setLatestReport] = useState(null)
   const [sidebarKey, setSidebarKey] = useState(0)
   const [user, setUser] = useState(null)
@@ -50,8 +55,41 @@ export default function App() {
     setSidebarKey(k => k + 1)
   }
 
+  function dismissDevBanner() {
+    sessionStorage.setItem('devBannerDismissed', '1')
+    setDevBannerDismissed(true)
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#080b10', color: '#c9d1d9', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── Dev Banner ── */}
+      {!devBannerDismissed && (
+        <div style={{
+          background: '#1a1000', borderBottom: '1px solid #78350f',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 10, padding: '7px 16px', fontSize: 12, color: '#fbbf24', flexShrink: 0,
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 14 }}>🚧</span>
+          <span>
+            <strong style={{ color: '#fcd34d' }}>PirateSpotters is in active development and testing.</strong>
+            {' '}Bugs and missing features are expected — your feedback helps prioritise what gets fixed next.
+          </span>
+          <button
+            onClick={() => setShowFeedback(true)}
+            style={{
+              background: '#78350f', color: '#fcd34d', border: '1px solid #92400e',
+              borderRadius: 5, padding: '3px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Give Feedback
+          </button>
+          <button onClick={dismissDevBanner}
+            style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 4px', marginLeft: 4 }}
+            title="Dismiss">✕</button>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <header style={{
@@ -111,6 +149,21 @@ export default function App() {
         </nav>
 
         <div style={{ flex: 1 }} />
+
+        {/* Feedback button */}
+        <button
+          onClick={() => setShowFeedback(true)}
+          style={{
+            background: 'none', color: '#8b949e',
+            border: '1px solid #21262d', borderRadius: 6,
+            padding: '6px 14px', fontSize: 12, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, marginRight: 12,
+          }}
+          onMouseOver={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#30363d' }}
+          onMouseOut={e => { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = '#21262d' }}
+        >
+          💬 Feedback
+        </button>
 
         {/* Live indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 16, fontSize: 12, color: '#8b949e' }}>
@@ -231,6 +284,9 @@ export default function App() {
 
       {showModal && (
         <ReportModal onClose={() => setShowModal(false)} onSubmit={onReported} user={user} />
+      )}
+      {showFeedback && (
+        <FeedbackModal onClose={() => setShowFeedback(false)} currentPage={tab} user={user} />
       )}
 
       <style>{`

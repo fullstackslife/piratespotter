@@ -112,6 +112,38 @@ class BannedUser(Base):
     reason = Column(String, nullable=True)
 
 
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    category = Column(String, default="general")   # suggestion | bug | other
+    message = Column(Text, nullable=False)
+    contact = Column(String, nullable=True)        # optional Discord handle or email
+    discord_user_id = Column(String, nullable=True)
+    discord_username = Column(String, nullable=True)
+    page = Column(String, nullable=True)           # which tab/page they were on
+
+    def to_dict(self):
+        def _iso(dt):
+            if dt is None:
+                return None
+            s = dt.isoformat()
+            if not s.endswith("Z") and "+" not in s:
+                s += "Z"
+            return s
+        return {
+            "id": self.id,
+            "created_at": _iso(self.created_at),
+            "category": self.category,
+            "message": self.message,
+            "contact": self.contact,
+            "discord_user_id": self.discord_user_id,
+            "discord_username": self.discord_username,
+            "page": self.page,
+        }
+
+
 class GuildConfig(Base):
     __tablename__ = "guild_configs"
 

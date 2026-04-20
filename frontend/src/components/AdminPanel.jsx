@@ -236,6 +236,83 @@ function UsersTab() {
   )
 }
 
+// ── Feedback tab ──────────────────────────────────────────────────────────────
+function FeedbackTab() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
+
+  const CATEGORY_COLOR = { suggestion: '#22c55e', bug: '#ef4444', other: '#a78bfa' }
+  const CATEGORY_LABEL = { suggestion: '💡 Suggestion', bug: '🐛 Bug', other: '💬 Other' }
+
+  async function load() {
+    setLoading(true)
+    const res = await authFetch('/api/admin/feedback')
+    if (res.ok) setItems(await res.json())
+    else setErr(`${res.status}`)
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function del(id) {
+    setDeletingId(id)
+    const res = await authFetch(`/api/admin/feedback/${id}`, { method: 'DELETE' })
+    if (res.ok) setItems(prev => prev.filter(i => i.id !== id))
+    setDeletingId(null)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <button onClick={load} style={{ background: 'none', color: '#8b949e', border: '1px solid #21262d', borderRadius: 6, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}>
+          ↻ Refresh
+        </button>
+      </div>
+      {err && <div style={{ color: '#fca5a5', fontSize: 13, marginBottom: 12 }}>{err}</div>}
+      <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #21262d', fontSize: 12, fontWeight: 700, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Submissions ({items.length})
+        </div>
+        {loading ? (
+          <div style={{ padding: 24, color: '#484f58', fontSize: 13, textAlign: 'center' }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 24, color: '#484f58', fontSize: 13, textAlign: 'center' }}>No feedback yet.</div>
+        ) : items.map(item => (
+          <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '14px 16px', borderBottom: '1px solid #1e2730' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: CATEGORY_COLOR[item.category] || '#8b949e' }}>
+                  {CATEGORY_LABEL[item.category] || item.category}
+                </span>
+                {item.page && <span style={{ fontSize: 10, color: '#484f58' }}>on: {item.page}</span>}
+                <span style={{ fontSize: 10, color: '#484f58' }}>{timeAgo(item.created_at)}</span>
+                {item.discord_username && (
+                  <span style={{ fontSize: 10, color: '#8b949e' }}>@{item.discord_username}</span>
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: '#e6edf3', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {item.message}
+              </div>
+              {item.contact && (
+                <div style={{ fontSize: 11, color: '#8b949e', marginTop: 6 }}>
+                  📬 Contact: <span style={{ color: '#c9d1d9' }}>{item.contact}</span>
+                </div>
+              )}
+            </div>
+            <button onClick={() => del(item.id)} disabled={deletingId === item.id}
+              style={{ background: 'none', color: '#484f58', border: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 6px', flexShrink: 0, opacity: deletingId === item.id ? 0.4 : 1 }}
+              onMouseOver={e => e.currentTarget.style.color = '#ef4444'}
+              onMouseOut={e => e.currentTarget.style.color = '#484f58'}
+              title="Delete">✕</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function AdminPanel() {
   const [tab, setTab] = useState('reports')
@@ -301,10 +378,12 @@ export default function AdminPanel() {
       <div style={{ borderBottom: '1px solid #21262d', marginBottom: 20, display: 'flex' }}>
         <button style={TAB_STYLE(tab === 'reports')} onClick={() => setTab('reports')}>Reports</button>
         <button style={TAB_STYLE(tab === 'users')} onClick={() => setTab('users')}>Users & Spam</button>
+        <button style={TAB_STYLE(tab === 'feedback')} onClick={() => setTab('feedback')}>💬 Feedback</button>
       </div>
 
       {tab === 'reports' && <ReportsTab stats={stats} onClearAll={clearAll} clearing={clearing} />}
       {tab === 'users' && <UsersTab />}
+      {tab === 'feedback' && <FeedbackTab />}
     </div>
   )
 }
