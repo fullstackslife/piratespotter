@@ -78,6 +78,24 @@ function Callout({ icon = '⚠', color = '#f59e0b', children }) {
   )
 }
 
+function FAQItem({ question, answer, last }) {
+  return (
+    <div style={{
+      background: CARD_BG,
+      border: `1px solid ${BORDER}`,
+      borderRadius: 8,
+      padding: '18px 22px',
+      marginBottom: last ? 0 : 8,
+    }}>
+      <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <span style={{ color: ACCENT, flexShrink: 0 }}>Q</span>
+        {question}
+      </div>
+      <div style={{ color: DIM, fontSize: 13, lineHeight: 1.7, paddingLeft: 20 }}>{answer}</div>
+    </div>
+  )
+}
+
 export default function HuntingGuide() {
   return (
     <div style={{
@@ -249,6 +267,44 @@ export default function HuntingGuide() {
               <span style={{ color: '#fff', minWidth: 220, flexShrink: 0 }}>{action}</span>
               <span style={{ color: DIM }}>{detail}</span>
             </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* FAQ */}
+      <Section title="❓  Frequently Asked Questions">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            {
+              q: 'How do I know if the pirate is actually on my shard?',
+              a: `You can't — Star Citizen doesn't expose shard IDs or population lists to players. The game can spin up hundreds of simultaneous shards based on server load, and there is currently no in-game tool or third-party method to check which shard a specific player is on. The server-hop technique (party + leader logout) is the only reliable way to land in the same instance as someone you know is already online. If you arrive at the location and the pirates are gone, they may have logged off, moved on, or you ended up on a different shard — in which case repeat the cycle with a fresh victim lead.`,
+            },
+            {
+              q: 'What if the victim has already logged off by the time I respond?',
+              a: `Without an active party leader in the target shard there is no reliable way to server-hop into it. Your best options: head to the reported location anyway — pirate orgs often stay in an area for extended sessions — or watch the Live Feed for follow-up reports from the same location. A second victim appearing nearby is a strong signal the pirates are still active.`,
+            },
+            {
+              q: 'Does server hopping always work?',
+              a: `Not 100%. The matchmaking system prioritises putting party members together but it is not guaranteed, especially during high-population events or when the leader's shard is nearly full. If the first attempt fails, the victim stays put and hunters log out and back in again. Most groups land on the same shard within one or two attempts.`,
+            },
+            {
+              q: 'Can the pirate see me server-hopping in?',
+              a: `No. From their perspective you simply appear in the shard — there is no notification or indicator that someone joined their instance specifically to hunt them.`,
+            },
+            {
+              q: 'What is the difference between a shard and a server?',
+              a: `Informally the terms are used interchangeably by the community. Technically a shard is a full simulation instance — it has its own copy of every planet, station, and NPC. Multiple shards run simultaneously on CIG's infrastructure. When you log in you are placed into one shard; the pirates are in another unless you deliberately sync via party hopping.`,
+            },
+            {
+              q: 'Do I need to be in the same system as the victim to hop shards?',
+              a: `No. You can be anywhere in the universe when you log out. What matters is that you are in the same party and the victim is the active leader. When you log back in the game places you in the leader's shard regardless of where in the 'verse you both are.`,
+            },
+            {
+              q: 'Can I track a pirate across multiple shards?',
+              a: `Not directly — each shard is independent. However, reports on PirateSpotters are persistent. If the same pirate handle appears across multiple reports you can build a picture of their preferred locations and times, which makes it easier to intercept them next time they are active.`,
+            },
+          ].map(({ q, a }, i, arr) => (
+            <FAQItem key={i} question={q} answer={a} last={i === arr.length - 1} />
           ))}
         </div>
       </Section>
