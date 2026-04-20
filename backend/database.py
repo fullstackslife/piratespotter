@@ -63,9 +63,18 @@ class Report(Base):
         return out
 
     def to_dict(self):
+        def _iso(dt):
+            if dt is None:
+                return None
+            s = dt.isoformat()
+            # Ensure JS always parses as UTC (bare ISO without Z is treated as local time)
+            if not s.endswith("Z") and "+" not in s:
+                s += "Z"
+            return s
+
         return {
             "id": self.id,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": _iso(self.created_at),
             "location": self.location,
             "system": self.system,
             "pirate_type": self.pirate_type,
@@ -79,9 +88,9 @@ class Report(Base):
             "bounty_auec": self.bounty_auec or 0,
             "bounty_message": self.bounty_message,
             "bounty_hunter_name": self.bounty_hunter_name,
-            "bounty_claimed_at": self.bounty_claimed_at.isoformat() if self.bounty_claimed_at else None,
+            "bounty_claimed_at": _iso(self.bounty_claimed_at),
             "bounty_cleared": bool(self.bounty_cleared),
-            "bounty_cleared_at": self.bounty_cleared_at.isoformat() if self.bounty_cleared_at else None,
+            "bounty_cleared_at": _iso(self.bounty_cleared_at),
         }
 
 
