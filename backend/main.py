@@ -19,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from database import SessionLocal, Report, GuildConfig, VoteTracking, init_db
+from database import SessionLocal, Report, GuildConfig, VoteTracking, BannedUser, init_db
 
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
@@ -185,6 +185,72 @@ def admin_clear(admin=Depends(_require_admin)):
     db.commit()
     db.close()
     return {"cleared": count}
+
+
+@app.get("/api/admin/users")
+def admin_users(admin=Depends(_require_admin)):
+    db = SessionLocal()
+    reports = db.query(Report).order_by(Report.created_at.desc()).all()
+    banned_ids = {b.discord_user_id for b in db.query(BannedUser).all()}
+    db.close()
+
+    users: dict = {}
+    for r in reports:
+        uid = r.discord_user_id or "__anon__"
+        if uid not in users:
+            users[uid] = {
+                "discord_user_id": uid if uid != "__anon__" else None,
+                "reporter_name": r.reporter_name,
+                "count": 0,
+                "banned": uid in banned_ids,
+                "submissions": [],
+            }
+        users[uid]["count"] += 1
+        # Keep latest name seen
+        if r.reporter_name and not users[uid]["reporter_name"]:
+            users[uid]["reporter_name"] = r.reporter_name
+        users[uid]["submissions"].append({
+            "id": r.id,
+            "location": r.location,
+            "system": r.system,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "notes": (r.notes or "")[:80],
+        })
+
+    return sorted(users.values(), key=lambda u: u["count"], reverse=True)
+
+
+@app.post("/api/admin/users/{discord_user_id}/ban")
+def admin_ban_user(discord_user_id: str, reason: str = Query(default=""), admin=Depends(_require_admin)):
+    db = SessionLocal()
+    existing = db.query(BannedUser).filter(BannedUser.discord_user_id == discord_user_id).first()
+    if not existing:
+        db.add(BannedUser(discord_user_id=discord_user_id, reason=reason or None))
+        db.commit()
+    db.close()
+    return {"banned": discord_user_id}
+
+
+@app.delete("/api/admin/users/{discord_user_id}/ban")
+def admin_unban_user(discord_user_id: str, admin=Depends(_require_admin)):
+    db = SessionLocal()
+    db.query(BannedUser).filter(BannedUser.discord_user_id == discord_user_id).delete()
+    db.commit()
+    db.close()
+    return {"unbanned": discord_user_id}
+
+
+@app.delete("/api/admin/users/{discord_user_id}/reports")
+def admin_delete_user_reports(discord_user_id: str, admin=Depends(_require_admin)):
+    db = SessionLocal()
+    reports = db.query(Report).filter(Report.discord_user_id == discord_user_id).all()
+    count = len(reports)
+    for r in reports:
+        db.query(VoteTracking).filter(VoteTracking.report_id == r.id).delete()
+        db.delete(r)
+    db.commit()
+    db.close()
+    return {"deleted": count}
 
 
 # ── Printable in-game style names (no control chars / newlines) ────────────────
@@ -683,6 +749,13 @@ def create_report(body: ReportCreate, request: Request):
                 body.reporter_name = discord_username
         except JWTError:
             raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+
+        # Check if user is banned
+        ban_db = SessionLocal()
+        banned = ban_db.query(BannedUser).filter(BannedUser.discord_user_id == discord_user_id).first()
+        ban_db.close()
+        if banned:
+            raise HTTPException(status_code=403, detail="Your account has been banned from submitting reports.")
 
         # 5-minute per-user cooldown — checked against DB so it survives restarts
         now = datetime.now(timezone.utc)

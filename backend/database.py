@@ -95,6 +95,14 @@ class VoteTracking(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class BannedUser(Base):
+    __tablename__ = "banned_users"
+
+    discord_user_id = Column(String, primary_key=True)
+    banned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    reason = Column(String, nullable=True)
+
+
 class GuildConfig(Base):
     __tablename__ = "guild_configs"
 

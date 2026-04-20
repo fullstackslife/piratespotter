@@ -197,12 +197,103 @@ function StarMapView({ heat, onSelectSystem }) {
   )
 }
 
+// ── Body detail panel ─────────────────────────────────────────────────────────
+function BodyDetailPanel({ body, heat, system, onClose }) {
+  const systemReports = heat[system]?.list || []
+  const bodyName = body.name
+  const reports = systemReports.filter(r =>
+    r.location && (
+      r.location.toLowerCase().includes(bodyName.toLowerCase()) ||
+      (body.pois || []).some(p => r.location.toLowerCase().includes(p.name.toLowerCase()))
+    )
+  )
+
+  const kindGroups = {}
+  for (const poi of (body.pois || [])) {
+    if (!kindGroups[poi.kind]) kindGroups[poi.kind] = []
+    kindGroups[poi.kind].push(poi.name)
+  }
+
+  const moons = body.moons || []
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#080b10', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid #1e2730', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <button onClick={onClose} style={{ background: 'none', border: '1px solid #30363d', borderRadius: 5, color: '#8b949e', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>
+          ← System
+        </button>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#e6edf3' }}>{bodyName}</div>
+        <span style={{ fontSize: 11, color: '#484f58' }}>{body._type === 'moon' ? `Moon of ${body._parent}` : 'Planet'} · {system}</span>
+        {reports.length > 0 && (
+          <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: '#ef4444' }}>☠ {reports.length} report{reports.length !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        {/* Moons */}
+        {moons.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Moons ({moons.length})</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {moons.map(m => (
+                <div key={m.name} style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 6, padding: '6px 12px', fontSize: 12, color: '#c9d1d9' }}>
+                  {m.name}
+                  {m.pois?.length > 0 && <span style={{ color: '#484f58', fontSize: 10 }}> · {m.pois.length} POIs</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* POIs by category */}
+        {Object.keys(kindGroups).length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Points of Interest</div>
+            {Object.entries(kindGroups).map(([kind, names]) => (
+              <div key={kind} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: '#8b949e', marginBottom: 4, textTransform: 'capitalize' }}>{kind.replace('_', ' ')}</div>
+                {names.map(n => (
+                  <div key={n} style={{ fontSize: 12, color: '#c9d1d9', padding: '3px 0', borderBottom: '1px solid #1e2730' }}>{n}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pirate reports */}
+        {reports.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#484f58', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>☠ Pirate Reports</div>
+            {reports.map(r => (
+              <div key={r.id} style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: THREAT_C[r.threat_level], flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>{r.location}</span>
+                  <span style={{ fontSize: 10, color: '#484f58', textTransform: 'capitalize' }}>{r.pirate_type}</span>
+                </div>
+                {r.notes && <div style={{ fontSize: 11, color: '#8b949e' }}>{r.notes}</div>}
+                {r.bounty_auec > 0 && <div style={{ fontSize: 11, color: '#fcd34d', marginTop: 4 }}>Bounty: {Number(r.bounty_auec).toLocaleString()} aUEC</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {reports.length === 0 && Object.keys(kindGroups).length === 0 && moons.length === 0 && (
+          <div style={{ color: '#484f58', fontSize: 13 }}>No data available for this body.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── System detail view (full screen) ─────────────────────────────────────────
 function SystemDetailView({ name, heat, onBack }) {
   const sys = MAP_SYSTEMS[name]
   const faction = F[sys.f]
   const h = heat[name]
   const data = SYS_DATA[name]
+  const [selectedBody, setSelectedBody] = useState(null)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
@@ -291,6 +382,8 @@ function SystemDetailView({ name, heat, onBack }) {
                   bodies={data.bodies}
                   starColor={data.starColor}
                   starR={data.starR}
+                  onBodyClick={body => setSelectedBody(prev => prev?.name === body.name ? null : body)}
+                  selectedBody={selectedBody?.name}
                 />
               </div>
               <div style={{ padding: '8px 16px', borderTop: '1px solid #1e2730', fontSize: 9, color: '#3a4a5a' }}>
@@ -298,8 +391,11 @@ function SystemDetailView({ name, heat, onBack }) {
               </div>
             </div>
 
-            {/* Right: Reports + location tree */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto' }}>
+            {/* Right: body detail or reports + location tree */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: selectedBody ? 'hidden' : 'auto' }}>
+            {selectedBody ? (
+              <BodyDetailPanel body={selectedBody} heat={heat} system={name} onClose={() => setSelectedBody(null)} />
+            ) : (<>
 
               {/* Active reports */}
               <div style={{ flexShrink: 0 }}>
@@ -350,6 +446,7 @@ function SystemDetailView({ name, heat, onBack }) {
                   bodies={data.bodies}
                 />
               </div>
+            </>) }
             </div>
           </>
         )}

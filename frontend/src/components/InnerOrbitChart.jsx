@@ -3,7 +3,7 @@ import { POI_KIND } from '../scLocations'
 /**
  * Schematic orbit chart: planets, moons, and colored pins for POI categories (not real coordinates).
  */
-export default function InnerOrbitChart({ bodies, starColor, starR = 4 }) {
+export default function InnerOrbitChart({ bodies, starColor, starR = 4, onBodyClick, selectedBody }) {
   function markerColor(kind) {
     return (POI_KIND[kind] || POI_KIND.outpost).color
   }
@@ -68,6 +68,7 @@ export default function InnerOrbitChart({ bodies, starColor, starR = 4 }) {
         const prad = (p.angle * Math.PI) / 180
         const px = 50 + Math.cos(prad) * p.orbit * 46
         const py = 50 + Math.sin(prad) * p.orbit * 46
+        const isSelected = selectedBody === p.name
         return (
           <g key={p.name}>
             {(p.moons || []).map((m, mi) => {
@@ -76,37 +77,24 @@ export default function InnerOrbitChart({ bodies, starColor, starR = 4 }) {
               const mx = px + Math.cos(mr) * dist
               const my = py + Math.sin(mr) * dist
               const moonBase = p.angle + 55 + mi * 85
+              const moonSelected = selectedBody === m.name
               return (
-                <g key={m.name}>
+                <g key={m.name} onClick={() => onBodyClick?.({ ...m, _type: 'moon', _parent: p.name })} style={{ cursor: onBodyClick ? 'pointer' : 'default' }}>
                   <circle cx={px} cy={py} r={dist} fill="none" stroke="#1e2d3a" strokeWidth="0.2" opacity="0.45" />
-                  <circle cx={mx} cy={my} r={0.78} fill="#5a6a7a" opacity="0.9" />
+                  {moonSelected && <circle cx={mx} cy={my} r={1.5} fill="none" stroke="#7dcfff" strokeWidth="0.35" opacity="0.9" />}
+                  <circle cx={mx} cy={my} r={0.78} fill={moonSelected ? '#7dcfff' : '#5a6a7a'} opacity="0.9" />
                   <PoiRing cx={mx} cy={my} baseAngleDeg={moonBase} pois={m.pois} radius={0.78} />
-                  <text
-                    x={mx}
-                    y={my + 1.85}
-                    textAnchor="middle"
-                    fontSize="2.15"
-                    fill="#6b7d90"
-                    fontFamily="monospace"
-                  >
-                    {m.name}
-                  </text>
+                  <text x={mx} y={my + 1.85} textAnchor="middle" fontSize="2.15" fill={moonSelected ? '#7dcfff' : '#6b7d90'} fontFamily="monospace">{m.name}</text>
                 </g>
               )
             })}
-            <circle cx={px} cy={py} r={p.r} fill={p.color} opacity="0.9" />
-            <circle cx={px - p.r * 0.3} cy={py - p.r * 0.3} r={p.r * 0.35} fill="white" opacity="0.18" />
-            <PoiRing cx={px} cy={py} baseAngleDeg={p.angle} pois={p.pois} radius={p.r} />
-            <text
-              x={px}
-              y={py + p.r + 3.8}
-              textAnchor="middle"
-              fontSize="2.9"
-              fill="#7a90a8"
-              fontFamily="monospace"
-            >
-              {p.name}
-            </text>
+            <g onClick={() => onBodyClick?.({ ...p, _type: 'planet' })} style={{ cursor: onBodyClick ? 'pointer' : 'default' }}>
+              {isSelected && <circle cx={px} cy={py} r={p.r + 2} fill="none" stroke="#7dcfff" strokeWidth="0.4" opacity="0.9" />}
+              <circle cx={px} cy={py} r={p.r} fill={p.color} opacity="0.9" />
+              <circle cx={px - p.r * 0.3} cy={py - p.r * 0.3} r={p.r * 0.35} fill="white" opacity="0.18" />
+              <PoiRing cx={px} cy={py} baseAngleDeg={p.angle} pois={p.pois} radius={p.r} />
+              <text x={px} y={py + p.r + 3.8} textAnchor="middle" fontSize="2.9" fill={isSelected ? '#7dcfff' : '#7a90a8'} fontFamily="monospace">{p.name}</text>
+            </g>
           </g>
         )
       })}
